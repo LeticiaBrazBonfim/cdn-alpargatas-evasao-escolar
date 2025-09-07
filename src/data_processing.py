@@ -1,3 +1,12 @@
+'''
+Funções responsáveis pelo tratamento dos dados brutos (raw):
+- Padronização
+- Tratamento e limpeza
+- Agregação
+- União
+- Geração de dados processados
+'''
+
 from paths import PROCESSED_DATA_DIR
 from data_ingestion import df_dtb_bruto, df_ideb_bruto, df_proj_IA_bruto
 import pandas as pd
@@ -87,7 +96,7 @@ df_dtb_tratado = tratar_dtb(df_dtb_bruto)
 df_ideb_tratado = tratar_ideb(df_ideb_bruto)
 df_proj_IA_tratado = tratar_proj_IA(df_proj_IA_bruto)
 
-# Salva os dfs em data/processed
+# Salva os dfs tratados em data/processed
 PROCESSED_DATA_DIR.mkdir(parents=True, exist_ok=True)
 
 df_dtb_tratado.to_parquet(
@@ -122,7 +131,7 @@ print(' DATA FRAME FINAL (após união DTB, IDEB e PROJ IA) '.center(150, '='))
 print(data_final.head())
 
 
-# Salva o DataFrame final, que contém todos os dados unidos
+# Salva o DataFrame final, que contém todos os 3 dfs unidos
 data_final.to_parquet(PROCESSED_DATA_DIR /
                     'data_final_consolidado.parquet', index=False)
 
