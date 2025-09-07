@@ -1,12 +1,10 @@
 # 📊 Dashboard de Análise de Dados: Instituto Alpargatas
 
-[🚀 Teste Nossa Demo (rodando localmente)](#como-executar)
-
 O projeto foi desenvolvido como um projeto de extensão para a disciplina de Análise de Dados, ministrada pelo professor Dr. Aléssio Tony C. Almeida, no curso de Ciência de Dados para Negócios na UFPB e tem como objetivo aprimorar as ações do Instituto Alpargatas nos municípios em que ele atua.
 
 A solução é uma ferramenta interativa que garante:
 
--   **Decisões Estratégicas Baseadas em Dados**: Substitui a intuição por análises concretas.
+-   **Decisões Estratégicas**: Tomadas de decisão ágeis e totalmente baseadas em dados.
 -   **Ações Direcionadas**: Otimiza o uso de recursos para focar em alunos e regiões de maior vulnerabilidade.
 -   **Maximização de Impacto Social**: Aumenta o alcance da instituição com o uso inteligente dos recursos.
 
@@ -14,13 +12,13 @@ A ferramenta integra bases de dados públicas (IBGE e IDEB) e privadas (do Insti
 
 ---
 
-### 📝 Sumário
+## 📝 Sumário
 
-    - [📊 Dashboard de Análise de Dados: Alpargatas](#-dashboard-de-analise-de-dados:-alpargatas)
-    - [💻 Tecnologias](#-tecnologias)
-    - [🗂️ Estrutura do Projeto](#-estrutura-do-projeto)
-    - [🚀 Como Executar](#-como-executar)
-    - [🧑‍💻 Equipe de Desenvolvimento](#-equipe-de-desenvolvimento)
+- [Dashboard de Análise de Dados: Alpargatas](#dashboard-de-análise-de-dados-alpargatas)
+- [Tecnologias](#tecnologias)
+- [Estrutura do Projeto](#estrutura-do-projeto)
+- [Como Executar](#como-executar)
+- [Equipe de Desenvolvimento](#equipe-de-desenvolvimento)
 
 ---
 
@@ -33,6 +31,7 @@ As seguintes tecnologias foram utilizadas para o desenvolvimento deste projeto:
 -   **Pandas**: Essencial para a manipulação e análise dos dados.
 -   **Matplotlib** & **Seaborn**: Para a visualização dos dados e geração de gráficos.
 -   **python-dotenv**: Para o gerenciamento de variáveis de ambiente.
+-   **Altair**
 
 ---
 
@@ -47,7 +46,9 @@ A organização do projeto segue uma estrutura padrão para ciência de dados, g
 ├── notebooks/               \# Notebooks de exploração e prototipagem.
 ├── src/                     \# Código-fonte da aplicação.
 │   ├── app.py
-│   └── data\_processing.py
+|   └── data_ingestion.py
+│   └── data_processing.py
+|   └── paths.py
 ├── .env                     \# Variáveis de ambiente (caminhos de arquivos).
 ├── .gitignore               \# Arquivos a serem ignorados pelo Git.
 ├── requirements.txt         \# Lista de dependências do projeto.
