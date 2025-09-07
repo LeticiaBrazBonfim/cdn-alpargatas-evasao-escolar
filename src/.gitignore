@@ -1,0 +1,6 @@
+# Ignora pasta de dados privados do Instituto Alpargatas
+data/raw/proj_IA/projetos_IA_2020-2025.xlsx
+
+# Ignora os DataFrames processados gerados a partir de dados privados
+data/processed/proj_IA_consolidado.parquet
+data/processed/data_final_consolidado.parquet
