@@ -110,7 +110,7 @@ pydeck==0.9.1
 Pygments==2.19.1
 pylint==3.3.2
 pyparsing==3.2.0
-pypdf==5.1.0
+pypdf==6.0.0
 pypng==0.20220715.0
 python-dateutil==2.9.0.post0
 python-json-logger==3.3.0
@@ -148,7 +148,7 @@ threadpoolctl==3.6.0
 tinycss2==1.4.0
 toml==0.10.2
 tomlkit==0.13.2
-tornado==6.4.2
+tornado==6.5
 tqdm==4.67.1
 traitlets==5.14.3
 types-python-dateutil==2.9.0.20250708
