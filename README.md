@@ -45,7 +45,7 @@ A organização do projeto segue uma estrutura padrão para ciência de dados, g
 ├── data/                    \# Contém dados brutos e processados.
 ├── notebooks/               \# Notebooks de exploração e prototipagem.
 ├── src/                     \# Código-fonte da aplicação.
-│   ├── app.py
+│   ├── dash_alpargatas.py
 |   └── data_ingestion.py
 │   └── data_processing.py
 |   └── paths.py
@@ -80,7 +80,7 @@ Siga os passos abaixo para rodar a aplicação em sua máquina local.
     1.2. **Clone o repositório:** Agora que você está na pasta correta, use o comando `git clone[link_do_repositorio]` para baixar o repositório do projeto. 
     
     ```bash
-    git clone [https://github.com/seu-usuario/seu-projeto.git](https://github.com/seu-usuario/seu-projeto.git)
+    git clone https://github.com/LeticiaBrazBonfim/cdn-alpargatas-evasao-escolar.git
     ```
     
     O comando acima criará uma nova pasta com o nome do repositório (`cdn-alpargatas-evasao-escolar`) no local escolhido.
