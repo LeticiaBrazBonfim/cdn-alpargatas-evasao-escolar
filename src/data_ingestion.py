@@ -3,11 +3,12 @@ Funções responsáveis pela leitura dos dados brutos (raw):
 - DTB_relatorio_br_municipios.xls
 - IDEB_anos_iniciais_2023.xlsx
 - projetos_IA_2020-2025.xlsx
+- PIB_municípios_2010-2021.xlsx
 '''
 
 import pandas as pd
 from pathlib import Path
-from paths import diretorio_DTB, diretorio_IDEB, diretorio_PROJ_IA
+from paths import diretorio_DTB, diretorio_IDEB, diretorio_PROJ_IA, diretorio_PIB
 
 
 def ler_dtb(diretorio_DTB: Path):
@@ -49,18 +50,51 @@ def ler_proj_IA(diretorio_PROJ_IA: Path):
     '''
     Função para leitura dos dados do arquivo Projetos IA
     '''
-    df_proj_IA_bruto = pd.read_excel(diretorio_PROJ_IA, sheet_name='2024', skiprows=5,
-                                     usecols=['CIDADES', 'UF', 'Nº \nProjetos.7',
-                                              'Nº \nInstituições.1', 'Nº \nBeneficiados.4'])
+    abas_anos = ['2020', '2021']
+    dfs = []
 
-    # print(' DATA FRAME BRUTO: PROJETOS IA '.center(150, '='))
-    # print('INSPEÇÃO PRIMEIRAS LINHAS\n', '---' * 10, '\n', df_proj_IA_bruto.head(), '\n')
+    for aba in abas_anos:
+        df_temp = pd.read_excel(diretorio_PROJ_IA, sheet_name=aba, header=5,
+                                usecols=['CIDADES', 'ESTADO', 'Nº de Projetos',
+                                        'Nº de Instituições', 'Nº de Beneficiados'])
+
+        # Adiciona a coluna 'ano' em cada DataFrame
+        df_temp['ano'] = int(aba)
+        dfs.append(df_temp)
+
+    # Junta todas as abas de anos
+    df_proj_IA_bruto = pd.concat(dfs, ignore_index=True)
+    
+    # print(' DATA FRAME BRUTO: Projetos IA '.center(150, '='))
+    # print('INSPEÇÃO PRIMEIRAS LINHAS\n', '---'*10, df_proj_IA_bruto.head(), '\n')
+    # print('INSPEÇÃO ULTIMAS LINHAS \n', '---'*10, df_proj_IA_bruto.tail(), '\n')
     # print('INFO \n', '---'*10)
     # df_proj_IA_bruto.info()
 
     return df_proj_IA_bruto
 
 
+
+def ler_pib(diretorio_PIB: Path):
+    '''
+    Função para leitura dos dados do Produto Interno Bruto (PIB) - Municípios
+    '''
+    df_pib_bruto = pd.read_excel(diretorio_PIB,
+                                 usecols=['Ano', 'Nome da Grande Região', 'Código do Município',
+                                          'Nome do Município', 'Sigla da Unidade da Federação',
+                                          'Produto Interno Bruto, \na preços correntes\n(R$ 1.000)',
+                                          'Produto Interno Bruto per capita, \na preços correntes\n(R$ 1,00)'])
+
+    # print(' DATA FRAME BRUTO: Produto Interno Bruto (PIB) '.center(150, '='))
+    # print('INSPEÇÃO PRIMEIRAS LINHAS\n', '---'*10, df_pib_bruto.head(), '\n')
+    # print('INSPEÇÃO ULTIMAS LINHAS \n', '---'*10, df_pib_bruto.tail(), '\n')
+    # print('INFO \n', '---'*10)
+    # df_pib_bruto.info()
+
+    return df_pib_bruto
+
+
 df_dtb_bruto = ler_dtb(diretorio_DTB)
 df_ideb_bruto = ler_ideb(diretorio_IDEB)
 df_proj_IA_bruto = ler_proj_IA(diretorio_PROJ_IA)
+df_pib_bruto = ler_pib(diretorio_PIB)
