@@ -83,7 +83,7 @@ Siga os passos abaixo para rodar a aplicação em sua máquina local.
     git clone [https://github.com/seu-usuario/seu-projeto.git](https://github.com/seu-usuario/seu-projeto.git)
     ```
     
-    O comando acima criará uma nova pasta com o nome do repositório (`cdn-alpargatas-dashboard`) no local escolhido.
+    O comando acima criará uma nova pasta com o nome do repositório (`cdn-alpargatas-evasao-escolar`) no local escolhido.
 
 2.  **Ambiente Virtual**
     
