@@ -113,7 +113,11 @@ Siga os passos abaixo para rodar a aplicação em sua máquina local.
 4.  **Iniciando o Dashboard**
     
     ```bash
-    streamlit run src/app.py
+    python src/data_processing.py  
+    ```
+    
+    ```bash
+    streamlit run src/dash_alpargatas.py
     ```
 
 ---
@@ -123,4 +127,3 @@ Siga os passos abaixo para rodar a aplicação em sua máquina local.
 * **Leticia Braz Bonfim** - [leticia.bonfim@academico.ufpb.br](mailto:leticia.bonfim@academico.ufpb.br) - [GitHub](https://github.com/Leticiabraz)
 * **Bianca Lavine da Silva Beserra** - [bianca.lavine@academico.ufpb.br](mailto:bianca.lavine@academico.ufpb.br) - [GitHub](https://github.com/lavine0524)
 * **Kaio Vitor Martins** - [kvms@academico.ufpb.br](mailto:kvms@academico.ufpb.br) - [GitHub](https://github.com/kaiov63)
-````
