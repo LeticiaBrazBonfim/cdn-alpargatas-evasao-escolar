@@ -1,0 +1,58 @@
+# --- Dados Privados ---
+# Ignora pasta de dados privados do Instituto Alpargatas
+data/raw/proj_IA/projetos_IA_2020-2025.xlsx
+
+# Ignora os DataFrames processados gerados a partir de dados privados
+data/processed/proj_IA_consolidado.parquet
+data/processed/data_final_consolidado.parquet
+
+
+# --- Ambientes Virtuais ---
+# Nunca inclua a pasta do ambiente virtual no repositório.
+# É específica para cada máquina e sistema operacional.
+.venv/
+venv/
+ENV/
+env/
+
+# --- Arquivos de Cache e Bytecode do Python ---
+# Gerados automaticamente pelo Python, não são necessários no repositório.
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# --- Arquivos de configuração de IDEs e Editores ---
+# Configurações pessoais do seu editor de código (VSCode, PyCharm, etc.).
+.vscode/
+.idea/
+
+# --- Arquivos de checkpoint do Jupyter Notebook ---
+.ipynb_checkpoints/
+
+# --- Arquivos de Sistema Operacional ---
+# Arquivos de metadados gerados pelo macOS e Windows.
+.DS_Store
+._*
+Thumbs.db
+ehthumbs.db
+desktop.ini
+
+# --- Arquivos de Ambiente (.env) ---
+# Contém segredos, chaves de API ou caminhos específicos da sua máquina.
+# NUNCA deve ser enviado para o repositório por segurança.
+.env
+
+# --- Dados Processados ---
+# A pasta de dados processados não precisa ser versionada,
+# pois seus conteúdos podem ser gerados novamente ao executar o pipeline (main.py).
+data/processed/
+
+# --- Arquivos de Log ---
+# Arquivos de log gerados durante a execução ou debug.
+*.log
+logs/
+
+# --- Relatórios e saídas temporárias ---
+# Ex: Notebooks exportados para HTML, etc.
+*.html
