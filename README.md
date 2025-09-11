@@ -14,11 +14,12 @@ A ferramenta integra bases de dados públicas (IBGE e IDEB) e privadas (do Insti
 
 ## 📝 Sumário
 
-- [Dashboard de Análise de Dados: Alpargatas](#dashboard-de-análise-de-dados-alpargatas)
-- [Tecnologias](#tecnologias)
-- [Estrutura do Projeto](#estrutura-do-projeto)
-- [Como Executar](#como-executar)
-- [Equipe de Desenvolvimento](#equipe-de-desenvolvimento)
+- [📊 Dashboard de Análise de Dados: Instituto Alpargatas](#-dashboard-de-análise-de-dados-instituto-alpargatas)
+  - [📝 Sumário](#-sumário)
+    - [💻 Tecnologias](#-tecnologias)
+    - [🗂️ Estrutura do Projeto](#️-estrutura-do-projeto)
+    - [🚀 Como Executar](#-como-executar)
+    - [🧑‍💻 Equipe de Desenvolvimento](#-equipe-de-desenvolvimento)
 
 ---
 
@@ -62,8 +63,11 @@ A organização do projeto segue uma estrutura padrão para ciência de dados, g
 
 Siga os passos abaixo para rodar a aplicação em sua máquina local.
 
-**OBS:** Certifique-se de ter Python 3.10+ e Git instalados em seu sistema.
+**OBS:** O pipeline (main.py) funciona como o "construtor" do projeto. Ele lê os arquivos brutos, processa os dados e salva o arquivo final (data_final_consolidado.parquet) que será usado pelo dashboard. O pipeline só precisa ser executado uma vez ou quando os dados brutos/lógica do código forem alterados.
 
+O dashboard (dash_alpargatas.py) é o "visualizador", que apenas lê o arquivo já construído pelo pipeline para exibir as análises.
+
+:. Certifique-se de ter Python 3.10+ e Git instalados em seu sistema.
 1.  **Clonando o Repositório**
 
     1.1. **Escolha o local:** No terminal, navegue até o local onde você quer salvar o projeto. Utilize `cd caminho/diretorio`.
@@ -110,12 +114,13 @@ Siga os passos abaixo para rodar a aplicação em sua máquina local.
     pip install -r requirements.txt
     ```
 
-4.  **Iniciando o Dashboard**
+4.  **Executando o Pipeline de Dados**
     
     ```bash
-    python src/data_processing.py  
+    python src/main.py  
     ```
     
+5.  **Iniciando o Dashboard**
     ```bash
     streamlit run src/dash_alpargatas.py
     ```

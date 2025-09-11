@@ -5,10 +5,10 @@ Funções responsáveis pelo tratamento dos dados brutos (raw):
 - Agregação
 - União
 - Geração de dados processados
-'''
 
+Este arquivo funciona como uma biblioteca de ferramentas para o main.py.
+'''
 from paths import PROCESSED_DATA_DIR
-from data_ingestion import df_dtb_bruto, df_ideb_bruto, df_proj_IA_bruto, df_pib_bruto
 import pandas as pd
 
 
@@ -58,9 +58,10 @@ def tratar_ideb(df):
     df_longo['ano'] = df_longo['ano_str'].str.replace('ideb_', '').astype(int)
     df = df_longo.drop(columns=['ano_str'])
 
-    # Adiciona .copy() para evitar o SettingWithCopyWarning
     # df = df.query("ano in [2020, 2021] and rede == 'Pública'").copy()
 
+    df = df.dropna(subset=['id_municipio'])
+    df['id_municipio'] = df['id_municipio'].astype(int)
     df['nome_municipio_formatado'] = formatar_nome(df, 'nome_municipio')
     df = df.drop(columns=['nome_municipio'])
 
@@ -148,57 +149,3 @@ def tratar_pib(df):
     df.info()
 
     return df
-
-df_dtb_tratado = tratar_dtb(df_dtb_bruto)
-df_ideb_tratado = tratar_ideb(df_ideb_bruto)
-df_proj_IA_tratado = tratar_proj_IA(df_proj_IA_bruto)
-df_pib_tratado = tratar_pib(df_pib_bruto)
-
-# Salva os dfs tratados em data/processed
-PROCESSED_DATA_DIR.mkdir(parents=True, exist_ok=True)
-
-df_dtb_tratado.to_parquet(
-    PROCESSED_DATA_DIR / 'dtb_consolidado.parquet', index=False)
-df_ideb_tratado.to_parquet(
-    PROCESSED_DATA_DIR / 'ideb_consolidado.parquet', index=False)
-df_proj_IA_tratado.to_parquet(
-    PROCESSED_DATA_DIR / 'proj_IA_consolidado.parquet', index=False)
-df_pib_tratado.to_parquet(
-    PROCESSED_DATA_DIR / 'pib_consolidado.parquet', index=False)
-
-
-# Mescla os dfs
-# PIB é a base principal
-data_final = df_pib_tratado.merge(
-    # Adiciona os dados do IDEB. Junção: 'id_municipio' e 'ano'
-    df_ideb_tratado.drop(columns=['nome_municipio_formatado']),
-    how='left',
-    on=['id_municipio', 'ano']
-).merge(
-    # Adiciona os dados geográficos da DTB. Como a DTB não tem ano, unimos apenas por 'id_municipio'. 
-    # As informações serão replicadas para cada ano.
-    df_dtb_tratado.drop(columns=['nome_municipio_formatado']),
-    how='left',
-    on='id_municipio'
-)
-
-# Adicionamos os dados dos projetos_IA.
-# Junção: 'nome_municipio_formatado' e 'nome_uf' da DTB, junto com o ano.
-data_final = data_final.merge(
-    df_proj_IA_tratado.drop(columns=['sg_uf']),
-    how='left',
-    on=['nome_municipio_formatado', 'nome_uf', 'ano']
-)
-
-print('\n-> DataFrames consolidados salvos com sucesso na pasta "processed"!\n')
-
-print(' DATA FRAME FINAL (após união DTB, IDEB, PROJ IA e PIB) '.center(150, '='))
-print(data_final.dropna(subset=['nr_projetos']).head())
-print('\nVerificação das colunas do DataFrame final:')
-print(data_final.info())
-
-# Salva o DataFrame final, que contém todos os 3 dfs unidos
-data_final.to_parquet(PROCESSED_DATA_DIR /
-                      'data_final_consolidado.parquet', index=False)
-
-print('\n--- DataFrame final salvo com sucesso! ---')

@@ -9,18 +9,18 @@ import altair as alt
 
 @st.cache_data
 def carregar_dados():
-    """
+    '''
     Carrega o DataFrame completo e cria as colunas de segmentação.
-    """
+    '''
     ROOT_DIR = Path(__file__).resolve().parent.parent
     DATA_FILE = ROOT_DIR / 'data' / 'processed' / 'data_final_consolidado.parquet'
     try:
         df = pd.read_parquet(DATA_FILE)
     except FileNotFoundError:
-        st.error(f"ERRO: O arquivo '{DATA_FILE.name}' não foi encontrado.")
-        st.info("Por favor, certifique-se de que o script 'data_processing.py' foi executado sem os filtros de ano.")
+        st.error(f"ERRO: O arquivo de dados '{DATA_FILE.name}' não foi encontrado.")
+        st.info("Por favor, execute o pipeline de dados primeiro rodando o comando: python src/main.py no terminal")
         return None
-
+    
     # Converte 'ano' para inteiro para garantir a consistência
     df['ano'] = pd.to_numeric(df['ano'], errors='coerce').dropna().astype(int)
 
