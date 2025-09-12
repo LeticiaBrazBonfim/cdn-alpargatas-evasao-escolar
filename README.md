@@ -88,8 +88,9 @@ O dashboard (dash_alpargatas.py) é o "visualizador", que apenas lê o arquivo j
     ```
     
     O comando acima criará uma nova pasta com o nome do repositório (`cdn-alpargatas-evasao-escolar`) no local escolhido.
+    Utilize `cd` para entrar em (`cdn-alpargatas-evasao-escolar`)
 
-2.  **Ambiente Virtual**
+3.  **Ambiente Virtual**
     
     Para garantir a correta execução do programa é necessário criar um ambiente virtual e ativá-lo.
 
@@ -101,12 +102,17 @@ O dashboard (dash_alpargatas.py) é o "visualizador", que apenas lê o arquivo j
     2.2. **Ativando o ambiente**
     * **No Windows:**
         ```bash
-        .\.venv\Scripts\activate
+        source .venv/Scripts/activate
         ```
     * **No macOS/Linux:**
         ```bash
         source .venv/bin/activate
         ```
+    **OBS: ** Por padrão, o Windows pode bloquear a execução do script de ativação. Se você receber um erro, abra o **PowerShell como Administrador** e execute o comando abaixo para permitir a execução de scripts locais:
+     ```powershell
+    Set-ExecutionPolicy RemoteSigned
+    ```
+   Após o comando, feche o terminal e abra o do git bash para executar o comando de ativação do ambiente virtual novamente.
 
 3.  **Instalando as Dependências**
     
