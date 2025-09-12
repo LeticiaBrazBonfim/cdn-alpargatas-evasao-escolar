@@ -44,7 +44,7 @@ A organização do projeto segue uma estrutura padrão para ciência de dados, g
 
 .
 ├── data/                    \# Contém dados brutos e processados.
-├── notebooks/               \# Notebooks de exploração e prototipagem.
+├── nbs/               \# Notebooks de exploração e prototipagem.
 ├── src/                     \# Código-fonte da aplicação.
 │   ├── dash_alpargatas.py
 |   └── data_ingestion.py
@@ -104,15 +104,17 @@ O dashboard (dash_alpargatas.py) é o "visualizador", que apenas lê o arquivo j
         ```bash
         source .venv/Scripts/activate
         ```
-    * **No macOS/Linux:**
-        ```bash
-        source .venv/bin/activate
-        ```
+
     **OBS: ** Por padrão, o Windows pode bloquear a execução do script de ativação. Se você receber um erro, abra o **PowerShell como Administrador** e execute o comando abaixo para permitir a execução de scripts locais:
      ```powershell
     Set-ExecutionPolicy RemoteSigned
     ```
    Após o comando, feche o terminal e abra o do git bash para executar o comando de ativação do ambiente virtual novamente.
+   
+    * **No macOS/Linux:**
+        ```bash
+        source .venv/bin/activate
+        ```
 
 3.  **Instalando as Dependências**
     
