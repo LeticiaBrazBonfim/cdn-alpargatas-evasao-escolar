@@ -7,10 +7,20 @@ Funções responsáveis pela leitura dos dados brutos (raw):
 
 Este arquivo funciona como uma biblioteca de ferramentas para o main.py.
 '''
-import sys
-import pandas as pd
-from pathlib import Path
 import paths as pth
+from pathlib import Path
+import pandas as pd
+import sys
+
+'''
+Funções responsáveis pela leitura dos dados brutos (raw):
+- DTB_relatorio_br_municipios.xls
+- IDEB_anos_iniciais_2023.xlsx
+- projetos_IA_2020-2025.xlsx
+- PIB_municípios_2010-2021.xlsx
+
+Este arquivo funciona como uma biblioteca de ferramentas para o main.py.
+'''
 
 
 def exibir_erro_e_sair(nome_arquivo: str, diretorio: Path):
@@ -30,7 +40,7 @@ def exibir_erro_e_sair(nome_arquivo: str, diretorio: Path):
         - Verifique se o arquivo "{nome_arquivo}" está presente na pasta correta.
         - Confira se não há erros de digitação no nome do arquivo ou das pastas no script "paths.py".
         - Certifique-se de que o script está sendo executado a partir da pasta raiz do projeto.''')
-    
+
     print('\n> Por esse motivo o script será encerrado neste instante.')
     sys.exit(1)
 
@@ -41,16 +51,16 @@ def ler_dtb(diretorio_DTB: Path):
     '''
     try:
         df_dtb_bruto = pd.read_excel(diretorio_DTB, skiprows=6,
-                        usecols=['UF', 'Nome_UF', 'Nome Região Geográfica Imediata',
-                                    'Código Município Completo', 'Nome_Município'])
+                                     usecols=['UF', 'Nome_UF', 'Nome Região Geográfica Imediata',
+                                              'Código Município Completo', 'Nome_Município'])
         print(f"INFO: Arquivo '{pth.file_dtb}' lido com sucesso.")
-        
+
         # print(' DATA FRAME BRUTO: Divisão Geográfica do Brasil (DTB) '.center(150, '='))
         # print('INSPEÇÃO PRIMEIRAS LINHAS\n','---'*10, df_dtb_bruto.head(), '\n')
         # print('INSPEÇÃO ULTIMAS LINHAS \n','---'*10, df_dtb_bruto.tail(), '\n')
         # print('INFO \n', '---'*10)
         # df_dtb_bruto.info()
-        
+
         return df_dtb_bruto
     except FileNotFoundError:
         exibir_erro_e_sair(pth.file_dtb, diretorio_DTB)
@@ -64,15 +74,16 @@ def ler_ideb(diretorio_IDEB: Path):
         lista_ideb = [f'VL_OBSERVADO_{x}' for x in range(2005, 2025, 2)]
 
         df_ideb_bruto = pd.read_excel(diretorio_IDEB, skiprows=9,
-                                    usecols=['CO_MUNICIPIO', 'NO_MUNICIPIO', 'REDE'] + lista_ideb,
-                                    na_values=['-', '--'])
+                                      usecols=[
+                                          'CO_MUNICIPIO', 'NO_MUNICIPIO', 'REDE'] + lista_ideb,
+                                      na_values=['-', '--'])
         print(f'INFO: Arquivo "{pth.file_ideb}" lido com sucesso.')
-        
+
         # print(' DATA FRAME BRUTO: Índice de Desenvolvimento da Educação Básica (Ideb) '.center(150, '='))
         # print('INSPEÇÃO PRIMEIRAS LINHAS\n', '---' * 10, '\n', df_ideb_bruto.head(), '\n')
         # print('INFO \n', '---'*10)
         # df_ideb_bruto.info()
-        
+
         return df_ideb_bruto
     except FileNotFoundError:
         exibir_erro_e_sair(pth.file_ideb, diretorio_IDEB)
@@ -83,11 +94,11 @@ def ler_proj_IA(diretorio_PROJ_IA: Path):
     Função para leitura dos dados do arquivo Projetos IA
     '''
     try:
-        abas_anos = ['2020', '2021']
+        abas_anos = ['2020', '2021', '2022', '2023', '2024', '2025']
         df_final = []
 
         for aba in abas_anos:
-            df_anos = pd.read_excel(diretorio_PROJ_IA, sheet_name=aba, header=5,
+            df_anos = pd.read_excel(diretorio_PROJ_IA, sheet_name=aba,
                                     usecols=['CIDADES', 'ESTADO', 'Nº de Projetos',
                                             'Nº de Instituições', 'Nº de Beneficiados'],
                                     na_values=['-', '--'])
@@ -98,15 +109,15 @@ def ler_proj_IA(diretorio_PROJ_IA: Path):
 
         # Junta todas as abas de anos
         df_proj_IA_bruto = pd.concat(df_final, ignore_index=True)
-        
+
         print(f'INFO: Arquivo "{pth.file_proj_IA}" lido com sucesso.')
-        
+
         # print(' DATA FRAME BRUTO: Projetos IA '.center(150, '='))
         # print('INSPEÇÃO PRIMEIRAS LINHAS\n', '---'*10, df_proj_IA_bruto.head(), '\n')
         # print('INSPEÇÃO ULTIMAS LINHAS \n', '---'*10, df_proj_IA_bruto.tail(), '\n')
         # print('INFO \n', '---'*10)
         # df_proj_IA_bruto.info()
-        
+
         return df_proj_IA_bruto
     except FileNotFoundError:
         exibir_erro_e_sair(pth.file_proj_IA, diretorio_PROJ_IA)
@@ -118,19 +129,19 @@ def ler_pib(diretorio_PIB: Path):
     '''
     try:
         df_pib_bruto = pd.read_excel(diretorio_PIB,
-                                    usecols=['Ano', 'Nome da Grande Região', 'Código do Município',
-                                            'Nome do Município', 'Sigla da Unidade da Federação',
-                                            'Produto Interno Bruto, \na preços correntes\n(R$ 1.000)',
-                                            'Produto Interno Bruto per capita, \na preços correntes\n(R$ 1,00)'],
-                                    na_values=['-', '--'])
+                                     usecols=['Ano', 'Nome da Grande Região', 'Código do Município',
+                                              'Nome do Município', 'Sigla da Unidade da Federação',
+                                              'Produto Interno Bruto, \na preços correntes\n(R$ 1.000)',
+                                              'Produto Interno Bruto per capita, \na preços correntes\n(R$ 1,00)'],
+                                     na_values=['-', '--'])
         print(f'INFO: Arquivo "{pth.file_pib}" lido com sucesso.')
-        
+
         # print(' DATA FRAME BRUTO: Produto Interno Bruto (PIB) '.center(150, '='))
         # print('INSPEÇÃO PRIMEIRAS LINHAS\n', '---'*10, df_pib_bruto.head(), '\n')
         # print('INSPEÇÃO ULTIMAS LINHAS \n', '---'*10, df_pib_bruto.tail(), '\n')
         # print('INFO \n', '---'*10)
         # df_pib_bruto.info()
-        
+
         return df_pib_bruto
     except FileNotFoundError:
         exibir_erro_e_sair(pth.file_pib, diretorio_PIB)

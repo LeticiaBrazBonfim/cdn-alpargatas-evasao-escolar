@@ -8,19 +8,20 @@ Funções responsáveis pelo tratamento dos dados brutos (raw):
 
 Este arquivo funciona como uma biblioteca de ferramentas para o main.py.
 '''
-from paths import PROCESSED_DATA_DIR
 import pandas as pd
+from paths import PROCESSED_DATA_DIR
 
 
 def formatar_nome(df, coluna):
     return (df[coluna].str.upper()
-                    .str.replace('MIXING CENTER', '')
-                    .str.replace(r'[-.!?"`()*]', '', regex=True)
-                    .str.strip()
-                    .str.replace('  ', ' ')
-                    .str.normalize('NFKD')  # Normaliza caracteres acentuados
-                    .str.encode('ascii', errors='ignore')  # Remove acentos
-                    .str.decode('utf-8'))  # Decodifica novamente
+            .str.replace('MIXING CENTER', '')
+            .str.replace(r'[-.!?"`()*]', '', regex=True)
+            .str.strip()
+            .str.replace('  ', ' ')
+            .str.normalize('NFKD')  # Normaliza caracteres acentuados
+            .str.encode('ascii', errors='ignore')  # Remove acentos
+            .str.decode('utf-8'))  # Decodifica novamente
+
 
 def tratar_dtb(df):
     df = (df.rename(columns={
@@ -45,9 +46,16 @@ def tratar_dtb(df):
 
 
 def tratar_ideb(df):
-    novos_nomes = ['id_municipio', 'nome_municipio', 'rede'] + \
-        [f'ideb_{x}' for x in range(2005, 2025, 2)]
-    df = df.rename(columns=dict(zip(df.columns, novos_nomes)))
+    rename_map = {
+        'CO_MUNICIPIO': 'id_municipio',
+        'NO_MUNICIPIO': 'nome_municipio',
+        'REDE': 'rede'
+    }
+    # Adiciona os nomes das colunas de notas do IDEB ao dicionário
+    for year in range(2005, 2025, 2):
+        rename_map[f'VL_OBSERVADO_{year}'] = f'ideb_{year}'
+
+    df = df.rename(columns=rename_map)
 
     df_longo = pd.melt(df,
                        id_vars=['id_municipio', 'nome_municipio', 'rede'],
@@ -106,7 +114,7 @@ def tratar_proj_IA(df):
         'SP': 'São Paulo',
         'RJ': 'Rio de Janeiro'
     }
-    
+
     df['nome_uf'] = df['sg_uf'].map(mapa_uf)
 
     print(' DATA FRAME TRATADO: PROJETOS IA '.center(150, '='))
@@ -127,9 +135,9 @@ def tratar_pib(df):
         'Produto Interno Bruto, \na preços correntes\n(R$ 1.000)': 'pib_mil_reais',
         'Produto Interno Bruto per capita, \na preços correntes\n(R$ 1,00)': 'pib_per_capita'
     })
-    
+
     # df = df.query('ano in [2020, 2021]')
-    
+
     df['nome_municipio_formatado'] = formatar_nome(df, 'nome_municipio')
     df = df.drop(columns=['nome_municipio'])
 
