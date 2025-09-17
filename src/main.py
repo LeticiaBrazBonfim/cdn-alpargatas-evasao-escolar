@@ -37,7 +37,6 @@ def executar_pipeline():
    df_pib_tratado = tratar_pib(df_pib_bruto)
    df_pib_tratado.to_parquet(
        PROCESSED_DATA_DIR / 'pib_consolidado.parquet', index=False)
-   print('* Dados processados com sucesso!')
 
    # ETAPA DE UNIÃO DE DATAFRAMES
    print('\n3/4: Unindo DataFrames...')
@@ -58,7 +57,7 @@ def executar_pipeline():
    print('\n4/4: Salvando o DataFrame final...')
    PROCESSED_DATA_DIR.mkdir(parents=True, exist_ok=True)
    data_final.to_parquet(PROCESSED_DATA_DIR /
-                         'data_final_consolidado.parquet', index=False)
+                        'data_final_consolidado.parquet', index=False)
    print('* DataFrame final salvo com sucesso!')
 
    print("\n=== Pipeline concluído ===")

@@ -64,9 +64,8 @@ def tratar_ideb(df):
                        value_name='ideb_nota')
 
     df_longo['ano'] = df_longo['ano_str'].str.replace('ideb_', '').astype(int)
+    df = df_longo.query('rede == "Pública"').copy()
     df = df_longo.drop(columns=['ano_str'])
-
-    # df = df.query("ano in [2020, 2021] and rede == 'Pública'").copy()
 
     df = df.dropna(subset=['id_municipio'])
     df['id_municipio'] = df['id_municipio'].astype(int)
@@ -150,6 +149,17 @@ def tratar_pib(df):
 
     # Limpar valores nulos
     df = df.dropna(subset=['id_municipio', 'pib_mil_reais', 'pib_per_capita'])
+    
+    # Lógica para preencher os anos faltantes (2022-2025) com os dados do último ano (2021)
+    ultimo_ano = df['ano'].max()
+    anos_futuros = pd.DataFrame({'ano': [2022, 2023, 2024, 2025]})
+    df_ultimo_ano = df.loc[df['ano'] == ultimo_ano]
+    df_replicado = df_ultimo_ano.drop(
+        columns='ano').merge(anos_futuros, how='cross')
+    df = pd.concat([df, df_replicado], ignore_index=True)
+
+    print(
+        f'-> PIB tratado e replicado de {ultimo_ano} até {df["ano"].max()}.')
 
     print(' DATA FRAME TRATADO: Produto Interno Bruto (PIB) '.center(150, '='))
     print('INSPEÇÃO PRIMEIRAS LINHAS\n', '---'*10, '\n', df.head(), '\n')

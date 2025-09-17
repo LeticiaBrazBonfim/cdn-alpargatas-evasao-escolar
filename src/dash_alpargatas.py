@@ -17,20 +17,26 @@ st.set_page_config(
 
 st.markdown("""
 <style>
-    /* Altera a cor de fundo do tag */
+    /* Altera a cor de fundo do tag (o rótulo) */
     div[data-baseweb="tag"] {
-        background-color: #0288d1 !important; 
+        background-color: #ff6a00 !important; 
     }
-    /* Opcional: Altera a cor do "x" de remover para branco */
-    div[data-baseweb="tag"] svg {
+
+    /* Altera a cor do texto e do ícone do tag */
+    div[data-baseweb="tag"] span, div[data-baseweb="tag"] svg {
+        color: white !important;
         fill: white !important;
+    }
+    
+    /* Centraliza a imagem no div com o id 'logo-container' */
+    #logo-container {
+        text-align: center;
     }
 </style>
 """, unsafe_allow_html=True)
 
+
 # --- Carregamento e Cache dos Dados ---
-
-
 @st.cache_data
 def carregar_dados():
     '''
@@ -95,7 +101,10 @@ if df_completo is None:
 
 # --- BARRA LATERAL (SIDEBAR) ---
 with st.sidebar:
-    st.image("https://cdn.v2v.net/70fe53dd-da8c-48e8-8525-6e829825e319.png?v=63802404261", width=200)
+    st.markdown("<div id='logo-container'>", unsafe_allow_html=True)
+    st.image(
+        "https://cdn.v2v.net/70fe53dd-da8c-48e8-8525-6e829825e319.png?v=63802404261", width=200)
+    st.markdown("</div>", unsafe_allow_html=True)
 
     pagina_selecionada = option_menu(
         "Menu Principal",
@@ -118,14 +127,14 @@ with st.sidebar:
 # PÁGINA 1: Análise de Atuação do Instituto
 if pagina_selecionada == 'Análise de Atuação':
     st.title("📊 Análise Estratégica de Atuação do Instituto Alpargatas")
-    st.markdown("Esta análise foca em entender o perfil dos municípios onde o Instituto atua, **utilizando dados de 2020 a 2025**, período com cobertura completa de todas as fontes de dados.")
+    st.markdown("Esta análise foca em entender o perfil dos municípios onde o Instituto atua, **utilizando dados de 2020 a 2023**, período com cobertura completa de todas as fontes de dados.")
 
     # Filtros movidos para a sidebar
     ano_selecionado = st.sidebar.selectbox(
-        'Selecione o Ano', [2020, 2021, 2022, 2023, 2024, 2025], index=1, key='ano_atuacao')
+        'Selecione o Ano', [2021, 2023], index=1, key='ano_atuacao')
     estados_disponiveis = sorted(df_completo['nome_uf'].dropna().unique())
     estado_selecionado = st.sidebar.selectbox('Selecione o Estado (UF)', [
-                                              'Todos'] + estados_disponiveis, key='estado_atuacao')
+                                            'Todos'] + estados_disponiveis, key='estado_atuacao')
 
     # Filtragem dos dados
     df_filtrado = df_completo[df_completo['ano'] == ano_selecionado]
@@ -159,6 +168,9 @@ if pagina_selecionada == 'Análise de Atuação':
         st.subheader("Análise Estratégica: IDEB por Nível de Riqueza")
         with st.container(border=True):
             plot_ideb_por_pib(df_filtrado, ano_selecionado)
+            
+        st.divider()
+        st.info("ℹ️ Nota sobre os dados: O Produto Interno Bruto (PIB) para o ano de 20223 é uma estimativa baseada na replicação dos valores do último ano disponível (2021).")
 
 
 # PÁGINA 2: Análise Socioeconômica (PIB x IDEB)

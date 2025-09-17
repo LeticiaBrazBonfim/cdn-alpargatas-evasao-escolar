@@ -100,7 +100,7 @@ O dashboard (dash_alpargatas.py) é o "visualizador", que apenas lê o arquivo j
     ```
     
     2.2. **Ativando o ambiente**
-    * **No Windows:**
+    **No Windows:**
         ```bash
         source .venv/Scripts/activate
         ```
@@ -111,24 +111,24 @@ O dashboard (dash_alpargatas.py) é o "visualizador", que apenas lê o arquivo j
     ```
    Após o comando, feche o terminal e abra o do git bash para executar o comando de ativação do ambiente virtual novamente.
    
-    * **No macOS/Linux:**
+    **No macOS/Linux:**
         ```bash
         source .venv/bin/activate
         ```
 
-3.  **Instalando as Dependências**
+1.  **Instalando as Dependências**
     
     ```bash
     pip install -r requirements.txt
     ```
 
-4.  **Executando o Pipeline de Dados**
+2.  **Executando o Pipeline de Dados**
     
     ```bash
     python src/main.py  
     ```
     
-5.  **Iniciando o Dashboard**
+3.  **Iniciando o Dashboard**
     ```bash
     streamlit run src/dash_alpargatas.py
     ```

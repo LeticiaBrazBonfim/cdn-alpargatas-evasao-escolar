@@ -129,11 +129,11 @@ def ler_pib(diretorio_PIB: Path):
     '''
     try:
         df_pib_bruto = pd.read_excel(diretorio_PIB,
-                                     usecols=['Ano', 'Nome da Grande Região', 'Código do Município',
-                                              'Nome do Município', 'Sigla da Unidade da Federação',
-                                              'Produto Interno Bruto, \na preços correntes\n(R$ 1.000)',
-                                              'Produto Interno Bruto per capita, \na preços correntes\n(R$ 1,00)'],
-                                     na_values=['-', '--'])
+                                    usecols=['Ano', 'Nome da Grande Região', 'Código do Município',
+                                            'Nome do Município', 'Sigla da Unidade da Federação',
+                                            'Produto Interno Bruto, \na preços correntes\n(R$ 1.000)',
+                                            'Produto Interno Bruto per capita, \na preços correntes\n(R$ 1,00)'],
+                                    na_values=['-', '--'])
         print(f'INFO: Arquivo "{pth.file_pib}" lido com sucesso.')
 
         # print(' DATA FRAME BRUTO: Produto Interno Bruto (PIB) '.center(150, '='))
