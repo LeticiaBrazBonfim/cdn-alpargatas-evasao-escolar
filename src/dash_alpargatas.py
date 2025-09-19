@@ -61,7 +61,7 @@ def carregar_dados():
         df['nr_projetos'].notna() & (df['nr_projetos'] > 0), 'Sim', 'Não')
     try:
         df['categoria_pib'] = pd.qcut(df['pib_per_capita'], q=4, labels=[
-                                      'Baixo', 'Médio-Baixo', 'Médio-Alto', 'Alto'])
+                                    'Baixo', 'Médio-Baixo', 'Médio-Alto', 'Alto'])
     except Exception:
         df['categoria_pib'] = 'N/A'
     condicoes_porte = [
@@ -109,7 +109,7 @@ with st.sidebar:
     pagina_selecionada = option_menu(
         "Menu Principal",
         options=['Análise de Atuação',
-                 'Análise Socioeconômica', 'Evolução Histórica'],
+                'Análise Socioeconômica', 'Evolução Histórica'],
         icons=['clipboard-data', 'graph-up-arrow', 'bar-chart-line'],
         menu_icon="cast", default_index=0,
         styles={ 
@@ -186,8 +186,7 @@ elif pagina_selecionada == 'Análise Socioeconômica':
         'Selecione o Ano', anos_disponiveis_socio, index=len(anos_disponiveis_socio)-1, key='ano_socio')
 
     # Filtragem e Gráfico
-    df_filtrado_socio = df_analise_socio[df_analise_socio['ano']
-                                         == ano_selecionado_socio]
+    df_filtrado_socio = df_analise_socio[df_analise_socio['ano'] == ano_selecionado_socio]
 
     st.subheader(f"Contexto: PIB vs. IDEB em {ano_selecionado_socio}")
     with st.container(border=True):

@@ -51,8 +51,8 @@ def ler_dtb(diretorio_DTB: Path):
     '''
     try:
         df_dtb_bruto = pd.read_excel(diretorio_DTB, skiprows=6,
-                                     usecols=['UF', 'Nome_UF', 'Nome Região Geográfica Imediata',
-                                              'Código Município Completo', 'Nome_Município'])
+                                    usecols=['UF', 'Nome_UF', 'Nome Região Geográfica Imediata',
+                                            'Código Município Completo', 'Nome_Município'])
         print(f"INFO: Arquivo '{pth.file_dtb}' lido com sucesso.")
 
         # print(' DATA FRAME BRUTO: Divisão Geográfica do Brasil (DTB) '.center(150, '='))
@@ -74,9 +74,9 @@ def ler_ideb(diretorio_IDEB: Path):
         lista_ideb = [f'VL_OBSERVADO_{x}' for x in range(2005, 2025, 2)]
 
         df_ideb_bruto = pd.read_excel(diretorio_IDEB, skiprows=9,
-                                      usecols=[
-                                          'CO_MUNICIPIO', 'NO_MUNICIPIO', 'REDE'] + lista_ideb,
-                                      na_values=['-', '--'])
+                                    usecols=[
+                                        'CO_MUNICIPIO', 'NO_MUNICIPIO', 'REDE'] + lista_ideb,
+                                    na_values=['-', '--'])
         print(f'INFO: Arquivo "{pth.file_ideb}" lido com sucesso.')
 
         # print(' DATA FRAME BRUTO: Índice de Desenvolvimento da Educação Básica (Ideb) '.center(150, '='))
@@ -145,3 +145,32 @@ def ler_pib(diretorio_PIB: Path):
         return df_pib_bruto
     except FileNotFoundError:
         exibir_erro_e_sair(pth.file_pib, diretorio_PIB)
+        
+
+def ler_taxa_distorcao(diretorio_TAXA_DISTORCAO: Path):
+    '''
+    Função para leitura dos dados de Taxa de Distorção Idade-Série 2023 - Municípios
+    '''
+    try:
+        #fundamental = [f'FUN_0{x}_CAT_0' for x in range(1, 10)]
+        #ensino_medio = [f'MED_0{x}_CAT_0' for x in range(1, 5)]
+
+        df_taxa_distorcao = pd.read_excel(diretorio_TAXA_DISTORCAO, skiprows=8,
+                                        usecols=['NU_ANO_CENSO', 'CO_MUNICIPIO', 'NO_MUNICIPIO', 'NO_DEPENDENCIA',
+                                                    'FUN_CAT_0', 'FUN_AI_CAT_0', 'FUN_AF_CAT_0'],
+                                        na_values=['-', '--'])
+
+
+        print(f'INFO: Arquivos taxa de distorção 2021 e 2023 lido com sucesso.')
+
+        # print(' DATA FRAME BRUTO: Taxa de Distorção Idade-Série por Município - 2023 '.center(150, '='))
+        # print('INSPEÇÃO PRIMEIRAS LINHAS\n', '---' *
+        #         10, df_taxa_distorcao.head(), '\n')
+        # print('INSPEÇÃO ULTIMAS LINHAS \n', '---' *
+        #         10, df_taxa_distorcao.tail(), '\n')
+        # print('INFO \n', '---'*10)
+        # df_taxa_distorcao.info()
+
+        return df_taxa_distorcao
+    except FileNotFoundError:
+        exibir_erro_e_sair(diretorio_TAXA_DISTORCAO.name, diretorio_TAXA_DISTORCAO)

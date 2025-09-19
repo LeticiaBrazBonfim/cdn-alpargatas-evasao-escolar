@@ -58,10 +58,10 @@ def tratar_ideb(df):
     df = df.rename(columns=rename_map)
 
     df_longo = pd.melt(df,
-                       id_vars=['id_municipio', 'nome_municipio', 'rede'],
-                       value_vars=[f'ideb_{x}' for x in range(2005, 2025, 2)],
-                       var_name='ano_str',
-                       value_name='ideb_nota')
+                    id_vars=['id_municipio', 'nome_municipio', 'rede'],
+                    value_vars=[f'ideb_{x}' for x in range(2005, 2025, 2)],
+                    var_name='ano_str',
+                    value_name='ideb_nota')
 
     df_longo['ano'] = df_longo['ano_str'].str.replace('ideb_', '').astype(int)
     df = df_longo.query('rede == "Pública"').copy()
@@ -103,8 +103,8 @@ def tratar_proj_IA(df):
                 'nr_instituicoes': 'sum',
                 'nr_beneficiados': 'sum'
             })
-          .reset_index()
-          )
+        .reset_index()
+        )
 
     mapa_uf = {
         'PB': 'Paraíba',
@@ -167,3 +167,45 @@ def tratar_pib(df):
     df.info()
 
     return df
+
+
+def tratar_taxa_distorcao(df):
+    rename_map = {
+        'NU_ANO_CENSO': 'ano',
+        'NO_MUNICIPIO': 'nome_municipio',
+        'CO_MUNICIPIO': 'id_municipio',
+        'NO_DEPENDENCIA': 'rede',
+        'FUN_CAT_0': 'taxa_distorcao_total_fun',
+        'FUN_AI_CAT_0': 'taxa_distorcao_anos_iniciais',
+        'FUN_AF_CAT_0': 'taxa_distorcao_anos_finais'
+    }
+    df = df.rename(columns=rename_map)
+    df['nome_municipio_formatado'] = formatar_nome(df, 'nome_municipio')
+    df = df.query('rede == "Pública"').copy()
+    
+    colunas_para_manter = [
+        'id_municipio',
+        'ano',
+        'nome_municipio_formatado',
+        'taxa_distorcao_total_fun',
+        'taxa_distorcao_anos_iniciais',
+        'taxa_distorcao_anos_finais'
+    ]
+    df = df[colunas_para_manter]
+
+    df_agregado = df.groupby(
+        ['id_municipio', 'ano', 'nome_municipio_formatado']).mean().reset_index()
+
+    df_agregado['id_municipio'] = df_agregado['id_municipio'].astype(int)
+    df_agregado['ano'] = df_agregado['ano'].astype(int)
+
+    df = df_agregado
+
+    print(' DATA FRAME TRATADO: Taxa de Distorção (Médias Finais por Município) '.center(150, '='))
+    print('INSPEÇÃO PRIMEIRAS LINHAS\n', '---'*10, '\n', df.head(), '\n')
+    print('INFO \n', '---'*10)
+    df.info()
+
+    return df
+
+
