@@ -70,6 +70,10 @@ def executar_pipeline():
         df_proj_IA_tratado.drop(columns=['sg_uf']),
         how='left',
         on=['nome_municipio_formatado', 'nome_uf', 'ano']
+    ).merge(
+        df_taxa_distorcao_final.drop(columns=['nome_municipio_formatado']),
+        how='left',
+        on=['id_municipio', 'ano']
     )
 
     print(' DATA FINAL CONSOLIDADO '.center(150, '='))
