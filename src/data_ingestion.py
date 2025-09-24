@@ -149,19 +149,16 @@ def ler_pib(diretorio_PIB: Path):
 
 def ler_taxa_distorcao(diretorio_TAXA_DISTORCAO: Path):
     '''
-    Função para leitura dos dados de Taxa de Distorção Idade-Série 2023 - Municípios
+    Função para leitura dos dados de Taxa de Distorção Idade-Série - Municípios
     '''
     try:
-        #fundamental = [f'FUN_0{x}_CAT_0' for x in range(1, 10)]
-        #ensino_medio = [f'MED_0{x}_CAT_0' for x in range(1, 5)]
-
         df_taxa_distorcao = pd.read_excel(diretorio_TAXA_DISTORCAO, skiprows=8,
                                         usecols=['NU_ANO_CENSO', 'CO_MUNICIPIO', 'NO_MUNICIPIO', 'NO_DEPENDENCIA',
-                                                    'FUN_CAT_0', 'FUN_AI_CAT_0', 'FUN_AF_CAT_0'],
+                                                'FUN_CAT_0', 'FUN_AI_CAT_0', 'FUN_AF_CAT_0'],
                                         na_values=['-', '--'])
 
-
-        print(f'INFO: Arquivos taxa de distorção 2021 e 2023 lido com sucesso.')
+        print(
+            f'INFO: Arquivo "{diretorio_TAXA_DISTORCAO.name}" lido com sucesso.')
 
         # print(' DATA FRAME BRUTO: Taxa de Distorção Idade-Série por Município - 2023 '.center(150, '='))
         # print('INSPEÇÃO PRIMEIRAS LINHAS\n', '---' *
@@ -173,4 +170,5 @@ def ler_taxa_distorcao(diretorio_TAXA_DISTORCAO: Path):
 
         return df_taxa_distorcao
     except FileNotFoundError:
-        exibir_erro_e_sair(diretorio_TAXA_DISTORCAO.name, diretorio_TAXA_DISTORCAO)
+        exibir_erro_e_sair(diretorio_TAXA_DISTORCAO.name,
+                           diretorio_TAXA_DISTORCAO)

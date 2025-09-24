@@ -9,6 +9,7 @@ Funções responsáveis pelo tratamento dos dados brutos (raw):
 Este arquivo funciona como uma biblioteca de ferramentas para o main.py.
 '''
 import pandas as pd
+import numpy as np
 from paths import PROCESSED_DATA_DIR
 
 
@@ -64,8 +65,10 @@ def tratar_ideb(df):
                     value_name='ideb_nota')
 
     df_longo['ano'] = df_longo['ano_str'].str.replace('ideb_', '').astype(int)
-    df = df_longo.query('rede == "Pública"').copy()
-    df = df_longo.drop(columns=['ano_str'])
+    df_filtrado = df_longo.query('rede == "Pública"').copy()
+
+    # Remove colunas desnecessárias
+    df = df_filtrado.drop(columns=['ano_str', 'rede'])
 
     df = df.dropna(subset=['id_municipio'])
     df['id_municipio'] = df['id_municipio'].astype(int)
@@ -78,6 +81,7 @@ def tratar_ideb(df):
     df.info()
 
     return df
+
 
 
 def tratar_proj_IA(df):
@@ -182,7 +186,7 @@ def tratar_taxa_distorcao(df):
     df = df.rename(columns=rename_map)
     df['nome_municipio_formatado'] = formatar_nome(df, 'nome_municipio')
     df = df.query('rede == "Pública"').copy()
-    
+
     colunas_para_manter = [
         'id_municipio',
         'ano',
@@ -201,11 +205,9 @@ def tratar_taxa_distorcao(df):
 
     df = df_agregado
 
-    print(' DATA FRAME TRATADO: Taxa de Distorção (Médias Finais por Município) '.center(150, '='))
+    print(' DATA FRAME TRATADO: Taxa de Distorção (Média Simples por Município) '.center(150, '='))
     print('INSPEÇÃO PRIMEIRAS LINHAS\n', '---'*10, '\n', df.head(), '\n')
     print('INFO \n', '---'*10)
     df.info()
 
     return df
-
-
