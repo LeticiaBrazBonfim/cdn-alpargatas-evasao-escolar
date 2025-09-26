@@ -103,10 +103,11 @@ O dashboard (dash_alpargatas.py) é o "visualizador", que apenas lê o arquivo j
     ```
     
     2.2. **Ativando o ambiente**
+
     **No Windows:**
-        ```bash
-        source .venv/Scripts/activate
-        ```
+    ```bash
+    source .venv/Scripts/activate
+    ```
 
    Por padrão, o Windows pode bloquear a execução do script de ativação. Se você receber um erro, abra o PowerShell como Administrador e execute o comando abaixo para permitir a execução de scripts locais:
 
@@ -115,10 +116,10 @@ O dashboard (dash_alpargatas.py) é o "visualizador", que apenas lê o arquivo j
     ```
    Após o comando, feche o terminal e abra o do git bash para executar o comando de ativação do ambiente virtual novamente.
 
-    **No macOS/Linux:**
-        ```bash
-        source .venv/bin/activate
-        ```
+    **No MacOS/Linux:**
+    ```bash
+    source .venv/bin/activate
+    ```
 
 3.  **Instalando as Dependências**
     
