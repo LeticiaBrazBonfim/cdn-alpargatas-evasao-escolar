@@ -34,6 +34,10 @@ def executar_pipeline():
 
     # ETAPA DE PROCESSAMENTO: Usando as ferramentas de 'data_processing.py'
     print('\n2/4: Processando e limpando dados...')
+    
+    # Garante que o diretório de dados processados exista antes de salvar qualquer arquivo
+    PROCESSED_DATA_DIR.mkdir(parents=True, exist_ok=True)
+    
     df_dtb_tratado = tratar_dtb(df_dtb_bruto)
     df_dtb_tratado.to_parquet(
         PROCESSED_DATA_DIR / 'dtb_consolidado.parquet', index=False)

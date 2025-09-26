@@ -43,16 +43,19 @@ A organização do projeto segue uma estrutura padrão para ciência de dados, g
 ```
 
 .
-├── data/                    \# Contém dados brutos e processados.
-├── nbs/               \# Notebooks de exploração e prototipagem.
-├── src/                     \# Código-fonte da aplicação.
-│   ├── dash_alpargatas.py
-|   └── data_ingestion.py
-│   └── data_processing.py
-|   └── paths.py
-├── .env                     \# Variáveis de ambiente (caminhos de arquivos).
-├── .gitignore               \# Arquivos a serem ignorados pelo Git.
-├── requirements.txt         \# Lista de dependências do projeto.
+├── data/   
+│   ├── raw/                # Contém os dados brutos (.xlsx, .csv, etc.).
+│   └── processed/          # Onde os dados limpos e consolidados são salvos (.parquet).
+├── nbs/                    # Notebooks de exploração e prototipagem.
+├── src/                    # Código-fonte da aplicação.
+│  ├── main.py
+│  └── data_ingestion.py
+│  └── data_processing.py
+│  └── paths.py
+│ 
+├── app_streamlit           # Código-fonte do dashboard interativo.
+├── .gitignore              # Arquivos a serem ignorados pelo Git.
+├── requirements.txt        # Lista de dependências do projeto.
 └── README.md
 
 ````
@@ -90,7 +93,7 @@ O dashboard (dash_alpargatas.py) é o "visualizador", que apenas lê o arquivo j
     O comando acima criará uma nova pasta com o nome do repositório (`cdn-alpargatas-evasao-escolar`) no local escolhido.
     Utilize `cd` para entrar em (`cdn-alpargatas-evasao-escolar`)
 
-3.  **Ambiente Virtual**
+2.  **Ambiente Virtual**
     
     Para garantir a correta execução do programa é necessário criar um ambiente virtual e ativá-lo.
 
@@ -105,32 +108,33 @@ O dashboard (dash_alpargatas.py) é o "visualizador", que apenas lê o arquivo j
         source .venv/Scripts/activate
         ```
 
-    **OBS: ** Por padrão, o Windows pode bloquear a execução do script de ativação. Se você receber um erro, abra o **PowerShell como Administrador** e execute o comando abaixo para permitir a execução de scripts locais:
-     ```powershell
+   Por padrão, o Windows pode bloquear a execução do script de ativação. Se você receber um erro, abra o PowerShell como Administrador e execute o comando abaixo para permitir a execução de scripts locais:
+
+    ```powershell
     Set-ExecutionPolicy RemoteSigned
     ```
    Após o comando, feche o terminal e abra o do git bash para executar o comando de ativação do ambiente virtual novamente.
-   
+
     **No macOS/Linux:**
         ```bash
         source .venv/bin/activate
         ```
 
-1.  **Instalando as Dependências**
+3.  **Instalando as Dependências**
     
     ```bash
     pip install -r requirements.txt
     ```
 
-2.  **Executando o Pipeline de Dados**
+4.  **Executando o Pipeline de Dados**
     
     ```bash
     python src/main.py  
     ```
     
-3.  **Iniciando o Dashboard**
+5.  **Iniciando o Dashboard**
     ```bash
-    streamlit run src/dash_alpargatas.py
+    streamlit run app_streamlit.py
     ```
 
 ---
