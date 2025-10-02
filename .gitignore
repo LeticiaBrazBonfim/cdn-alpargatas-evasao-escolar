@@ -2,11 +2,6 @@
 # Ignora pasta de dados privados do Instituto Alpargatas
 data/raw/proj_IA/projetos_IA_2020-2025.xlsx
 
-# Ignora os DataFrames processados gerados a partir de dados privados
-data/processed/proj_IA_consolidado.parquet
-data/processed/data_final_consolidado.parquet
-
-
 # --- Ambientes Virtuais ---
 # Nunca inclua a pasta do ambiente virtual no repositório.
 # É específica para cada máquina e sistema operacional.
@@ -42,11 +37,6 @@ desktop.ini
 # Contém segredos, chaves de API ou caminhos específicos da sua máquina.
 # NUNCA deve ser enviado para o repositório por segurança.
 .env
-
-# --- Dados Processados ---
-# A pasta de dados processados não precisa ser versionada,
-# pois seus conteúdos podem ser gerados novamente ao executar o pipeline (main.py).
-data/processed/
 
 # --- Arquivos de Log ---
 # Arquivos de log gerados durante a execução ou debug.
