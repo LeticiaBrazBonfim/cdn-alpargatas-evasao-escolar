@@ -87,7 +87,7 @@ def pagina_ajuda():
     st.header("Ajuda & Glossário")
     st.markdown("Esta seção oferece explicações sobre os indicadores, visualizações e fontes de dados para garantir uma análise clara.")
 
-    if st.button("⬅️ Voltar ao Dashboard"):
+    if st.button("Voltar ao Dashboard"):
         st.session_state.pagina_ajuda_ativa = False
         st.rerun()
 
@@ -365,21 +365,52 @@ def construir_dashboard(df_completo, geojson_data):
 
         st.divider()
 
-        st.header(f"Contexto de Atuação do Instituto ({ano_selecionado})")
-        st.markdown(f"Este gráfico ilustra o cenário que motiva o nosso trabalho...")
-        if df_filtrado.empty:
-            st.warning(f"Nenhum dado disponível para os filtros selecionados no ano de {ano_selecionado}.")
+        # --- INÍCIO DA MODIFICAÇÃO CORRIGIDA ---
+        st.header("Contexto de Atuação do Instituto")
+        st.markdown("Este gráfico ilustra o cenário que motiva o nosso trabalho...")
+
+        # Usar 3 colunas para acomodar o novo seletor de ano
+        col_ano, col_ind, col_seg = st.columns(3)
+
+        # NOVO SELETOR DE ANO: Colocado na primeira coluna
+        ano_contexto = col_ano.selectbox(
+            "Ano de Análise",
+            options=anos_disponiveis,
+            index=0,
+            key='ano_contexto_col_selectbox'
+        )
+
+        indicadores_static = {"Nota IDEB": "ideb_nota", "Taxa de Distorção": "taxa_distorcao_total_fun"}
+        segmentacoes_static = {"População": "faixa_populacao", "PIB": "faixa_pib", "PIB per Capita": "faixa_pib_per_capita"}
+        
+        # Seletores existentes, agora nas colunas 2 e 3
+        indicador_nome_static = col_ind.selectbox("Indicador para Análise Estática", options=list(indicadores_static.keys()))
+        segmentacao_nome_static = col_seg.selectbox("Agrupar Análise Estática por", options=list(segmentacoes_static.keys()))
+
+        # Lógica de filtragem e plotagem (usando a variável 'ano_contexto' do novo seletor)
+        df_contexto = df_completo[
+            (df_completo['ano'] == ano_contexto) &
+            (df_completo['sg_uf'].isin(st.session_state.estados_selecionados))
+        ]
+
+        if df_contexto.empty:
+            st.warning(f"Nenhum dado disponível para os filtros selecionados no ano de {ano_contexto}.")
         else:
-            col_stat1, col_stat2 = st.columns(2)
-            indicadores_static = {"Nota IDEB": "ideb_nota", "Taxa de Distorção": "taxa_distorcao_total_fun"}
-            segmentacoes_static = {"População": "faixa_populacao", "PIB": "faixa_pib", "PIB per Capita": "faixa_pib_per_capita"}
-            indicador_nome_static = col_stat1.selectbox("Indicador para Análise Estática", options=list(indicadores_static.keys()))
-            segmentacao_nome_static = col_stat2.selectbox("Agrupar Análise Estática por", options=list(segmentacoes_static.keys()))
             indicador_id_static = indicadores_static[indicador_nome_static]
             segmentacao_id_static = segmentacoes_static[segmentacao_nome_static]
-            df_impacto_static = df_filtrado.groupby([segmentacao_id_static, 'status_projeto']).agg(valor_medio=(indicador_id_static, 'mean')).reset_index()
-            chart_static = alt.Chart(df_impacto_static).mark_bar().encode(x=alt.X(f'{segmentacao_id_static}:N', title=segmentacao_nome_static, sort=None, axis=alt.Axis(labelAngle=0)), y=alt.Y('valor_medio:Q', title=f"Média de {indicador_nome_static}"), color=alt.Color('status_projeto:N', title="Status", scale=alt.Scale(domain=['Com Projetos', 'Sem Projetos'], range=[COR_LARANJA, COR_CINZA])), xOffset='status_projeto:N', tooltip=[alt.Tooltip(segmentacao_id_static, title=segmentacao_nome_static), alt.Tooltip('status_projeto', title='Status'), alt.Tooltip('valor_medio', title='Valor Médio', format='.2f')]).properties(height=400)
+            
+            df_impacto_static = df_contexto.groupby([segmentacao_id_static, 'status_projeto']).agg(valor_medio=(indicador_id_static, 'mean')).reset_index()
+            
+            chart_static = alt.Chart(df_impacto_static).mark_bar().encode(
+                x=alt.X(f'{segmentacao_id_static}:N', title=segmentacao_nome_static, sort=None, axis=alt.Axis(labelAngle=0)),
+                y=alt.Y('valor_medio:Q', title=f"Média de {indicador_nome_static}"),
+                color=alt.Color('status_projeto:N', title="Status", scale=alt.Scale(domain=['Com Projetos', 'Sem Projetos'], range=[COR_LARANJA, COR_CINZA])),
+                xOffset='status_projeto:N',
+                tooltip=[alt.Tooltip(segmentacao_id_static, title=segmentacao_nome_static), alt.Tooltip('status_projeto', title='Status'), alt.Tooltip('valor_medio', title='Valor Médio', format='.2f')]
+            ).properties(height=400)
             st.altair_chart(chart_static, use_container_width=True)
+        # --- FIM DA MODIFICAÇÃO CORRIGIDA ---
+
 
     elif aba_selecionada == "Análise Histórica":
         st.header("Evolução Histórica Comparativa")
