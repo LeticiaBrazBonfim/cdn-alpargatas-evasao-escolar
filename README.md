@@ -1,6 +1,7 @@
 # 📊 Dashboard Estratégico para o Instituto Alpargatas
 
-[![Streamlit App](https://cdn-alpargatas-evasao-escolar-dpzbhnwlezpeqy3vbyzbc3.streamlit.app/)](https://[COLOQUE O LINK DO SEU STREAMLIT AQUI])
+[Streamlit App](https://cdn-alpargatas-evasao-escolar-dpzbhnwlezpeqy3vbyzbc3.streamlit.app/)
+
 
 Análise de dados educacionais e socioeconômicos para otimizar o impacto social e combater a evasão escolar nos municípios de atuação do Instituto Alpargatas.
 
