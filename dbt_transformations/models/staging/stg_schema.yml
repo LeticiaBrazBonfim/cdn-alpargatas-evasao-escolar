@@ -1,0 +1,40 @@
+version: 2
+
+models:
+  - name: stg_dtb
+    description: "Diretório Territorial Brasileiro (IBGE). Fonte da verdade para os códigos numéricos de municípios e estados."
+    columns:
+      - name: id_municipio
+        description: "Código numérico oficial do município (Chave Primária Natural)."
+        tests:
+          - unique
+          - not_null
+
+  - name: stg_projetos_ia
+    description: "Camada de higienização e enriquecimento dos projetos educacionais de Inteligência Artificial da Alpargatas."
+    columns:
+      - name: id_municipio
+        description: "Código numérico oficial do município, obtido via cruzamento (Lookup) com o diretório do IBGE."
+        tests:
+          - not_null:
+              config:
+                severity: error
+          - relationships:
+              arguments:
+                to: ref('stg_dtb')
+                field: id_municipio
+      
+      - name: ano_competencia
+        description: "Ano de execução do projeto."
+        tests:
+          - not_null
+      
+      - name: total_projetos_ia
+        description: "Quantidade total de projetos no município naquele ano."
+        tests:
+          - not_null
+      
+      - name: total_beneficiados
+        description: "Soma total de alunos ou instituições beneficiadas no município."
+        tests:
+          - not_null

@@ -1,0 +1,63 @@
+########################################
+# DATA / DATABASE FILES
+########################################
+
+*.duckdb
+*.duckdb.wal
+
+data/raw/
+*.parquet
+*.xlsx
+*.xls
+
+########################################
+# PYTHON / VENV
+########################################
+
+.env
+*.env
+.venv/
+venv/
+dbt-env/
+__pycache__/
+*.pyc
+
+########################################
+# DBT - OUTPUTS E CACHE
+########################################
+
+dbt_transformations/target/
+dbt_transformations/dbt_packages/
+dbt_transformations/logs/
+dbt_transformations/compiled/
+
+target/
+dbt_packages/
+logs/
+logs/*.log
+
+########################################
+# DBT ARTIFACTS (RAIZ)
+########################################
+
+manifest.json
+run_results.json
+semantic_manifest.json
+graph.gpickle
+graph_summary.json
+partial_parse.msgpack
+perf_info.json
+
+########################################
+# IDE / VS CODE
+########################################
+
+.vscode/
+*.code-workspace
+
+########################################
+# OS
+########################################
+
+.DS_Store
+Thumbs.db
