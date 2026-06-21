@@ -3,7 +3,7 @@ version: 2
 models:
   - name: dim_localidade
     description: |
-      Dimensão de Localidade (Município). Tabela lentamente mutável (Type 2).
+      Dimensão de Localidade (Município). Snapshot estático (Type 1).
       Fonte: Diretório Territorial Brasileiro (DTB) do IBGE.
       Granularidade: 1 linha por município brasileiro.
     columns:
@@ -143,6 +143,13 @@ models:
           Produto Interno Bruto Total = VAB Total + Impostos líquidos.
           Unidade: R$ 1.000.
           Preços: correntes.
+
+      - name: pib_per_capita
+        description: |
+          Produto Interno Bruto per capita.
+          Unidade: R$ 1,00 (reais por habitante).
+          Preços: correntes.
+          Calculado pelo IBGE com base na população do Censo/estimativas.
 
   - name: fato_taxa_distorcao
     description: |

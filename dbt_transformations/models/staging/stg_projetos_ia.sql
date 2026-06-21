@@ -64,4 +64,3 @@ SELECT
 FROM transformacao t
 LEFT JOIN dicionario_ibge ibge
     ON t.nome_municipio = ibge.nome_municipio_padrao
-    -- Remova completamente o operador AND t.sigla_uf = ibge.sigla_uf

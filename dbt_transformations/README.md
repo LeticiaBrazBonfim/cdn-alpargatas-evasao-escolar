@@ -29,7 +29,7 @@ core (modelo dimensional Kimball)
 **Resultado**: 
 - **1 Dimensão**: `dim_localidade` (5.571 municípios)
 - **3 Fatos**: `fato_projetos_ia`, `fato_socioeconomica`, `fato_taxa_distorcao`
-- **23 testes automáticos**: integridade, unicidade, referências
+- **22 testes automáticos**: integridade, unicidade, referências
 
 ---
 

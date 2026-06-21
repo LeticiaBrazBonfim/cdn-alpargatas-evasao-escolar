@@ -58,10 +58,10 @@ O pipeline segue o padrão **ELT (Extract, Load, Transform)** com três camadas 
                                            │
                                     dbt test --target dev
                                            ↓
-                ┌─────────────────────────────────────────────────────────────┐
-                │          VALIDAÇÃO (23 testes automáticos)                 │
-                │  • Unicidade, integridade referencial, not null           │
-                └─────────────────────────────────────────────────────────────┘
+                 ┌─────────────────────────────────────────────────────────────┐
+                 │          VALIDAÇÃO (22 testes automáticos)                 │
+                 │  • Unicidade, integridade referencial, not null           │
+                 └─────────────────────────────────────────────────────────────┘
 ```
 
 ---
@@ -374,7 +374,7 @@ dbt run --select dim_localidade   # Apenas um modelo
 - **Tempo**: ~15 segundos (completo)
 
 #### **dbt test** (Valida integridade)
-Executa 23 testes automáticos:
+Executa 22 testes automáticos:
 ```bash
 dbt test --target dev
 dbt test --select fato_projetos_ia  # Testes de um modelo
@@ -454,9 +454,9 @@ dbt run --target dev
 dbt test --target dev
 ```
 
-- Executa 23 testes automáticos
+- Executa 22 testes automáticos
 - **Tempo esperado**: ~10 segundos
-- **Sucesso esperado**: `PASS=23 FAIL=0 ERROR=0`
+- **Sucesso esperado**: `PASS=22 FAIL=0 ERROR=0`
 
 #### **Passo 5 (Opcional): Gerar documentação interativa**
 ```bash
@@ -536,10 +536,10 @@ Cada coluna tem descrição em `schema.yml`:
 
 | Tipo | Quantidade | Descrição |
 |------|-----------|-----------|
-| `not_null` | 12 | Garante que colunas críticas não são nulas |
+| `not_null` | 15 | Garante que colunas críticas não são nulas |
 | `unique` | 3 | Chaves primárias (sk_localidade, id_municipio) |
-| `relationships` | 3 | FKs apontam para PKs existentes |
-| **Total** | **23** | - |
+| `relationships` | 4 | FKs apontam para PKs existentes |
+| **Total** | **22** | - |
 
 ### Executar testes específicos
 
