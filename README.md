@@ -108,14 +108,6 @@ Para melhorias no pipeline, abra uma [Issue](https://github.com/LeticiaBraz/cdn-
 
 ---
 
-## 🤝 Equipe de Desenvolvimento
+## 👨‍💻 Desenvolvimento
 
-- **Leticia Braz Bonfim** - [GitHub](https://github.com/LeticiaBraz)
-- **Bianca Lavine da Silva Beserra** - [GitHub](https://github.com/lavine0524)
-- **Kaio Vitor Martins** - [GitHub](https://github.com/kaiov63)
-
----
-
-## 📜 Licença
-
-Este projeto é desenvolvido para o Instituto Alpargatas.
+**Leticia Braz Bonfim** - [GitHub](https://github.com/LeticiaBraz)

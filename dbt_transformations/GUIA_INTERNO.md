@@ -17,51 +17,51 @@
 O pipeline segue o padrão **ELT (Extract, Load, Transform)** com três camadas bem definidas:
 
 ```
-┌─────────────────────────────────────────────────────────────┐
-│              DADOS BRUTOS EM PARQUET (data/raw/)            │
-│   (dtb_municipios.parquet, pib_municipios.parquet, etc)    │
-└──────────────────────────┬──────────────────────────────────┘
-                           │
-                load_raw_to_postgres.py
-                (usa DuckDB para ler parquets)
-                           ↓
-┌─────────────────────────────────────────────────────────────┐
-│          CAMADA RAW (raw schema no Postgres)               │
-│    raw_dtb.sql, raw_pib_municipios.sql, etc                │
-│  • Cria tabelas: raw.dtb_municipios, raw.pib_municipios    │
-│  • Replicação 1:1 (sem transformação)                      │
-│  • ⚠️  load_raw_to_postgres.py cria APENAS schema raw      │
-└──────────────────────────┬──────────────────────────────────┘
-                           │
-                    dbt run --target dev
-                           ↓
-┌─────────────────────────────────────────────────────────────┐
-│        CAMADA STAGING (stg_* models)                        │
-│    stg_dtb.sql, stg_pib_municipios.sql, etc                │
-│  • Limpeza, casting, validação                             │
-│  • Enriquecimento (lookups, concatenações)                 │
-│  • Sem agregações ainda                                    │
-└──────────────────────────┬──────────────────────────────────┘
-                           │
-                    dbt run --target dev
-                           ↓
-┌─────────────────────────────────────────────────────────────┐
-│        CAMADA CORE (modelo Kimball)                        │
-│  ┌────────────────────────────────────────────────────────┐ │
-│  │ DIMENSÕES: dim_localidade                             │ │
-│  └────────────────────────────────────────────────────────┘ │
-│  ┌────────────────────────────────────────────────────────┐ │
-│  │ FATOS: fato_projetos_ia, fato_socioeconomica,         │ │
-│  │        fato_taxa_distorcao                            │ │
-│  └────────────────────────────────────────────────────────┘ │
-└──────────────────────────┬──────────────────────────────────┘
-                           │
-                    dbt test --target dev
-                           ↓
-┌─────────────────────────────────────────────────────────────┐
-│          VALIDAÇÃO (23 testes automáticos)                 │
-│  • Unicidade, integridade referencial, not null           │
-└─────────────────────────────────────────────────────────────┘
+                ┌─────────────────────────────────────────────────────────────┐
+                │              DADOS BRUTOS EM PARQUET (data/raw/)            │
+                │   (dtb_municipios.parquet, pib_municipios.parquet, etc)    │
+                └──────────────────────────┬──────────────────────────────────┘
+                                           │
+                            load_raw_to_postgres.py
+                            (usa DuckDB para ler parquets)
+                                           ↓
+                ┌─────────────────────────────────────────────────────────────┐
+                │          CAMADA RAW (raw schema no Postgres)               │
+                │    raw_dtb.sql, raw_pib_municipios.sql, etc                │
+                │  • Cria tabelas: raw.dtb_municipios, raw.pib_municipios    │
+                │  • Replicação 1:1 (sem transformação)                      │
+                │  • ⚠️  load_raw_to_postgres.py cria APENAS schema raw      │
+                └──────────────────────────┬──────────────────────────────────┘
+                                           │
+                                    dbt run --target dev
+                                           ↓
+                ┌─────────────────────────────────────────────────────────────┐
+                │        CAMADA STAGING (stg_* models)                        │
+                │    stg_dtb.sql, stg_pib_municipios.sql, etc                │
+                │  • Limpeza, casting, validação                             │
+                │  • Enriquecimento (lookups, concatenações)                 │
+                │  • Sem agregações ainda                                    │
+                └──────────────────────────┬──────────────────────────────────┘
+                                           │
+                                    dbt run --target dev
+                                           ↓
+                ┌─────────────────────────────────────────────────────────────┐
+                │        CAMADA CORE (modelo Kimball)                        │
+                │  ┌────────────────────────────────────────────────────────┐ │
+                │  │ DIMENSÕES: dim_localidade                             │ │
+                │  └────────────────────────────────────────────────────────┘ │
+                │  ┌────────────────────────────────────────────────────────┐ │
+                │  │ FATOS: fato_projetos_ia, fato_socioeconomica,         │ │
+                │  │        fato_taxa_distorcao                            │ │
+                │  └────────────────────────────────────────────────────────┘ │
+                └──────────────────────────┬──────────────────────────────────┘
+                                           │
+                                    dbt test --target dev
+                                           ↓
+                ┌─────────────────────────────────────────────────────────────┐
+                │          VALIDAÇÃO (23 testes automáticos)                 │
+                │  • Unicidade, integridade referencial, not null           │
+                └─────────────────────────────────────────────────────────────┘
 ```
 
 ---
@@ -612,16 +612,6 @@ WHERE NOT EXISTS (SELECT 1 FROM dev.dim_localidade d WHERE d.sk_localidade = f.s
 ```
 
 **Se > 0**: Há dados inválidos. Verificar JOIN no modelo.
-
----
-
-## 📊 Próximos Passos
-
-1. **Visualização**: Conectar Metabase/Tableau às tabelas `core`
-2. **Incremental**: Adicionar models incrementais para dados que crecem diariamente
-3. **Testes customizados**: Adicionar testes de qualidade de dados (ex: anomalias)
-4. **Orquestração**: Usar Airflow/dbt Cloud para scheduler automático
-5. **CI/CD**: Configurar testes automáticos em PRs via GitHub Actions
 
 ---
 
