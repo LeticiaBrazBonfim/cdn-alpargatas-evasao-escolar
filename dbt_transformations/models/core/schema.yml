@@ -1,0 +1,186 @@
+version: 2
+
+models:
+  - name: dim_localidade
+    description: |
+      Dimensão de Localidade (Município). Tabela lentamente mutável (Type 2).
+      Fonte: Diretório Territorial Brasileiro (DTB) do IBGE.
+      Granularidade: 1 linha por município brasileiro.
+    columns:
+      - name: sk_localidade
+        description: "Surrogate Key (chave substituta) numérica sequencial, ordenada por id_municipio."
+        tests:
+          - unique
+          - not_null
+
+      - name: id_municipio
+        description: "Chave natural: código numérico oficial do município (IBGE)."
+        tests:
+          - unique
+          - not_null
+
+      - name: id_nome_municipio
+        description: "Descrição composta: id_municipio concatenado com nome (formato: 1234 - São Paulo)."
+
+      - name: nome_municipio
+        description: "Nome oficial do município conforme IBGE, em maiúsculas."
+
+      - name: id_uf
+        description: "Código numérico da Unidade Federativa (UF)."
+        tests:
+          - not_null
+
+      - name: id_nome_uf
+        description: "Descrição composta: id_uf concatenado com nome da UF."
+
+      - name: nome_uf
+        description: "Nome da Unidade Federativa em maiúsculas."
+
+      - name: id_regiao_geografica_imediata
+        description: "Código da Região Geográfica Imediata (IBGE)."
+
+      - name: id_nome_regiao_geografica_imediata
+        description: "Descrição composta: id e nome da Região Geográfica Imediata."
+
+      - name: nome_regiao_geografica_imediata
+        description: "Nome da Região Geográfica Imediata em maiúsculas."
+
+  - name: fato_projetos_ia
+    description: |
+      Fato: Projetos de Inteligência Artificial Educacional da Alpargatas.
+      Granularidade: 1 linha por município + ano.
+      Métricas: quantidade de projetos e beneficiários por município/ano.
+    columns:
+      - name: sk_localidade
+        description: "Foreign Key para dim_localidade."
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_localidade')
+                field: sk_localidade
+
+      - name: ano
+        description: "Ano de execução do projeto (ano_competencia)."
+        tests:
+          - not_null
+
+      - name: quantidade_projetos
+        description: "Total de projetos de IA executados no município naquele ano."
+        tests:
+          - not_null
+
+      - name: quantidade_beneficiados
+        description: "Soma total de alunos ou instituições beneficiadas pelos projetos."
+        tests:
+          - not_null
+
+  - name: fato_socioeconomica
+    description: |
+      Fato: Indicadores Socioeconômicos Municipais.
+      Fonte: Produto Interno Bruto (PIB) e Valor Adicionado Bruto (VA) - IBGE.
+      Granularidade: 1 linha por município + ano.
+
+      IMPORTANTE: Cálculos de referência IBGE:
+      - Valor Adicionado Bruto (VAB) = soma dos valores adicionados por setor
+      - PIB = VAB Total + Impostos líquidos sobre produtos
+      - PIB per capita: NÃO DISPONÍVEL (não há dados de população na fonte primária)
+    columns:
+      - name: sk_localidade
+        description: "Foreign Key para dim_localidade."
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_localidade')
+                field: sk_localidade
+
+      - name: ano
+        description: "Ano de referência da métrica."
+        tests:
+          - not_null
+
+      - name: va_bruto_agropecuaria
+        description: |
+          Valor Adicionado Bruto do setor Agropecuário.
+          Unidade: R$ 1.000 (milhares de reais).
+          Preços: correntes (sem deflacionamento).
+
+      - name: va_bruto_industria
+        description: |
+          Valor Adicionado Bruto do setor Industrial.
+          Unidade: R$ 1.000 (milhares de reais).
+          Preços: correntes.
+
+      - name: va_bruto_servicos
+        description: |
+          Valor Adicionado Bruto do setor de Serviços.
+          EXCLUÍDOS: Administração pública, defesa, educação e saúde públicas, seguridade social.
+          Unidade: R$ 1.000.
+          Preços: correntes.
+
+      - name: va_bruto_administracao_publica
+        description: |
+          Valor Adicionado Bruto da Administração Pública, defesa, educação e saúde públicas, seguridade social.
+          Unidade: R$ 1.000.
+          Preços: correntes.
+
+      - name: va_bruto_total
+        description: |
+          Soma dos Valores Adicionados Brutos de todos os setores.
+          Unidade: R$ 1.000.
+          Preços: correntes.
+
+      - name: impostos_liquidos
+        description: |
+          Impostos líquidos de subsídios sobre produtos.
+          Diferença entre PIB e VAB Total.
+          Unidade: R$ 1.000.
+          Preços: correntes.
+
+      - name: pib_total
+        description: |
+          Produto Interno Bruto Total = VAB Total + Impostos líquidos.
+          Unidade: R$ 1.000.
+          Preços: correntes.
+
+  - name: fato_taxa_distorcao
+    description: |
+      Fato: Taxa de Distorção Idade-Série na Educação Básica.
+      Fonte: Instituto Nacional de Estudos e Pesquisas Educacionais (INEP).
+      Granularidade: 1 linha por município + ano + categoria_localidade + dependencia_administrativa.
+
+      Taxa de Distorção: percentual de alunos com idade superior à recomendada para a série.
+      Valores esperados: entre 0 e 100 (percentual).
+    columns:
+      - name: sk_localidade
+        description: "Foreign Key para dim_localidade."
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_localidade')
+                field: sk_localidade
+
+      - name: ano
+        description: "Ano do Censo Escolar."
+        tests:
+          - not_null
+
+      - name: categoria_localidade
+        description: "Categoria da localidade: Urbana ou Rural."
+
+      - name: dependencia_administrativa
+        description: "Dependência administrativa da escola: Federal, Estadual, Municipal ou Privada."
+
+      - name: taxa_distorcao_ensino_fundamental
+        description: |
+          Taxa de distorção idade-série no Ensino Fundamental.
+          Unidade: percentual (0-100).
+          Valores nulos indicam ausência de dados.
+
+      - name: taxa_distorcao_ensino_medio
+        description: |
+          Taxa de distorção idade-série no Ensino Médio.
+          Unidade: percentual (0-100).
+          Valores nulos indicam ausência de dados.

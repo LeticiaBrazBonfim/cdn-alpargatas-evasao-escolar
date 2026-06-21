@@ -1,3 +1,3 @@
 {% macro parquet(nome_arquivo) %}
-    read_parquet('../data/raw/{{ nome_arquivo }}.parquet')
+    {{ source('raw', nome_arquivo) }}
 {% endmacro %}

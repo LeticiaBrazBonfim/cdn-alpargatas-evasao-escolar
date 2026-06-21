@@ -38,16 +38,16 @@ transformacao AS (
         END AS nome_municipio,
         
         (
-            COALESCE(CAST(TRY_CAST(REPLACE("Nº de Projetos", '.0', '') AS NUMERIC) AS INTEGER), 0)
+            COALESCE(CAST({{ project_metric('Nº de Projetos') }} AS INTEGER), 0)
             {% for i in range(1, 6) %}
-            + COALESCE(CAST(TRY_CAST(REPLACE("Nº de Projetos.{{ i }}", '.0', '') AS NUMERIC) AS INTEGER), 0)
+            + COALESCE(CAST({{ project_metric('Nº de Projetos.' ~ i) }} AS INTEGER), 0)
             {% endfor %}
         ) AS total_projetos_ia,
 
         (
-            COALESCE(CAST(TRY_CAST(REPLACE("Nº de Beneficiados", '.0', '') AS NUMERIC) AS INTEGER), 0)
+            COALESCE(CAST({{ project_metric('Nº de Beneficiados') }} AS INTEGER), 0)
             {% for i in range(1, 6) %}
-            + COALESCE(CAST(TRY_CAST(REPLACE("Nº de Beneficiados.{{ i }}", '.0', '') AS NUMERIC) AS INTEGER), 0)
+            + COALESCE(CAST({{ project_metric('Nº de Beneficiados.' ~ i) }} AS INTEGER), 0)
             {% endfor %}
         ) AS total_beneficiados
     FROM filtro_coluna_cidades

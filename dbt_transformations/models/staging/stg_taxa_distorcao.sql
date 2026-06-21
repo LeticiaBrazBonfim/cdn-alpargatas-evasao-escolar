@@ -6,8 +6,8 @@ transformacao AS (
     SELECT
         CAST("NU_ANO_CENSO" AS INTEGER) AS ano_competencia,
         
-        -- Higienização da chave: Conversão de float para inteiro
-        CAST("CO_MUNICIPIO" AS INTEGER) AS id_municipio,
+        -- Higienização da chave: Conversão para inteiro
+        CAST(CAST(NULLIF("CO_MUNICIPIO", '') AS NUMERIC) AS INTEGER) AS id_municipio,
         
         UPPER(TRIM("SG_UF")) AS sigla_uf,
         UPPER(TRIM("NO_MUNICIPIO")) AS nome_municipio,
@@ -17,8 +17,8 @@ transformacao AS (
         UPPER(TRIM("NO_DEPENDENCIA")) AS dependencia_administrativa,
         
         -- Higienização de métricas: Tratamento do caractere '--' e conversão para decimal
-        TRY_CAST(NULLIF(TRIM("FUN_CAT_0"), '--') AS NUMERIC) AS taxa_distorcao_ensino_fundamental,
-        TRY_CAST(NULLIF(TRIM("MED_CAT_0"), '--') AS NUMERIC) AS taxa_distorcao_ensino_medio
+        {{ safe_cast_numeric_column('FUN_CAT_0', '--') }} AS taxa_distorcao_ensino_fundamental,
+        {{ safe_cast_numeric_column('MED_CAT_0', '--') }} AS taxa_distorcao_ensino_medio
 
     FROM source
     WHERE "CO_MUNICIPIO" IS NOT NULL

@@ -2,9 +2,7 @@ version: 2
 
 sources:
   - name: raw
-    description: "Camada de ingestão bruta proveniente de arquivos Parquet gerados pelo pipeline ELT em Python."
-    meta:
-      external_location: "../data/raw/{name}.parquet"
+    description: "Camada de ingestão bruta carregada no Postgres/Neon a partir dos arquivos Parquet do pipeline ELT em Python."
     tables:
       - name: dtb_municipios
         description: "Diretório de municípios do IBGE."
