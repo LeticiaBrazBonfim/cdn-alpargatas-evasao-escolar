@@ -1,8 +1,16 @@
 # 📊 Dashboard Estratégico para o Instituto Alpargatas
 
-[Metabase Dashboard](http://seu-metabase-url:3000) | [Documentação Técnica](dbt_transformations/GUIA_INTERNO.md)
+[Metabase Dashboard](http://seu-metabase-url:3000) | [Documentação Técnica](dbt_transformations/GUIA_INTERNO.md) | [v1.0.0 Release](https://github.com/LeticiaBrazBonfim/cdn-alpargatas-evasao-escolar/releases/tag/v1.0.0)
 
 Análise de dados educacionais e socioeconômicos para otimizar o impacto social e combater a evasão escolar nos municípios de atuação do Instituto Alpargatas.
+
+---
+
+## 📚 Contexto
+
+Este projeto foi originalmente entregue como trabalho acadêmico na disciplina **Análise de Dados** (2025.1, UFPB). 
+
+A partir da release [v1.0.0](https://github.com/LeticiaBrazBonfim/cdn-alpargatas-evasao-escolar/releases/tag/v1.0.0), o projeto evolui continuamente como um **laboratório pessoal** para aplicar e aprofundar conhecimentos em engenharia de dados, modelo dimensional e business intelligence.
 
 ---
 
