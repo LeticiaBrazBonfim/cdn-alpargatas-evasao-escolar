@@ -10,31 +10,74 @@ models:
           - unique
           - not_null
 
-  - name: stg_projetos_ia
-    description: "Camada de higienização e enriquecimento dos projetos educacionais de Inteligência Artificial da Alpargatas."
+  - name: stg_pib_municipios
+    description: "Produto Interno Bruto municipal (IBGE) - staging com casting e validação."
     columns:
       - name: id_municipio
-        description: "Código numérico oficial do município, obtido via cruzamento (Lookup) com o diretório do IBGE."
+        description: "Código numérico oficial do município."
         tests:
-          - not_null:
-              config:
-                severity: error
+          - not_null
           - relationships:
               arguments:
                 to: ref('stg_dtb')
                 field: id_municipio
-      
+      - name: ano_competencia
+        description: "Ano de referência do PIB."
+        tests:
+          - not_null
+      - name: pib_per_capita
+        description: "Produto Interno Bruto per capita (R$ 1,00)."
+
+  - name: stg_taxa_distorcao
+    description: "Taxa de distorção idade-série por município (INEP) - staging com safe_cast."
+    columns:
+      - name: id_municipio
+        description: "Código numérico oficial do município."
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('stg_dtb')
+                field: id_municipio
+      - name: ano_competencia
+        description: "Ano do Censo Escolar."
+        tests:
+          - not_null
+      - name: categoria_localidade
+        description: "Categoria da localidade: Urbana ou Rural."
+        tests:
+          - not_null
+      - name: dependencia_administrativa
+        description: "Dependência administrativa: Federal, Estadual, Municipal ou Privada."
+        tests:
+          - not_null
+
+  - name: stg_projetos_ia
+    description: "Projetos de IA educacional Alpargatas - staging 1:1. A agregação das 6 colunas de projetos e 6 de beneficiados é feita na camada core (fato_projetos_ia)."
+    columns:
       - name: ano_competencia
         description: "Ano de execução do projeto."
         tests:
           - not_null
-      
-      - name: total_projetos_ia
-        description: "Quantidade total de projetos no município naquele ano."
+      - name: sigla_uf
+        description: "Sigla da Unidade Federativa (ex: SP, RJ)."
+      - name: nome_municipio
+        description: "Nome do município em maiúsculas."
+
+  - name: stg_ideb
+    description: "Índice de Desenvolvimento da Educação Básica (INEP) - staging wide format 1:1. O UNPIVOT para formato longo é realizado na camada core (fato_ideb)."
+    columns:
+      - name: id_municipio
+        description: "Código numérico oficial do município."
         tests:
           - not_null
-      
-      - name: total_beneficiados
-        description: "Soma total de alunos ou instituições beneficiadas no município."
-        tests:
-          - not_null
+          - relationships:
+              arguments:
+                to: ref('stg_dtb')
+                field: id_municipio
+      - name: nome_municipio
+        description: "Nome do município em maiúsculas."
+      - name: sigla_uf
+        description: "Sigla da Unidade Federativa."
+      - name: nome_rede
+        description: "Rede de ensino: ESTADUAL, MUNICIPAL ou FEDERAL."

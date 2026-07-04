@@ -3,6 +3,7 @@ version: 2
 sources:
   - name: raw
     description: "Camada de ingestão bruta carregada no Postgres/Neon a partir dos arquivos Parquet do pipeline ELT em Python."
+    schema: "{{ target.schema }}"
     tables:
       - name: dtb_municipios
         description: "Diretório de municípios do IBGE."
