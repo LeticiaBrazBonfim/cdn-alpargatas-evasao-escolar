@@ -9,13 +9,13 @@ pib AS (
     SELECT * FROM {{ ref('stg_pib_municipios') }}
 ),
 
-fato_com_sk AS (
+fato_socioeconomica AS (
     SELECT
         -- Chave Estrangeira (Dimensão)
         d.sk_localidade,
 
         -- Granularidade
-        p.ano,
+        p.ano_competencia AS ano,
 
         -- Métricas de Valor Adicionado Bruto (VA) por Setor (conforme IBGE)
         p.va_bruto_agropecuaria,
@@ -37,4 +37,4 @@ fato_com_sk AS (
         ON p.id_municipio = d.id_municipio
 )
 
-SELECT * FROM fato_com_sk
+SELECT * FROM fato_socioeconomica

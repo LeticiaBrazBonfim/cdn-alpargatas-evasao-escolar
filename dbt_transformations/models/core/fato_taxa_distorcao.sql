@@ -9,7 +9,7 @@ taxa_distorcao AS (
     SELECT * FROM {{ ref('stg_taxa_distorcao') }}
 ),
 
-fato_com_sk AS (
+fato_taxa_distorcao AS (
     SELECT
         -- Chave Estrangeira (Dimensão)
         d.sk_localidade,
@@ -29,4 +29,4 @@ fato_com_sk AS (
         ON t.id_municipio = d.id_municipio
 )
 
-SELECT * FROM fato_com_sk
+SELECT * FROM fato_taxa_distorcao

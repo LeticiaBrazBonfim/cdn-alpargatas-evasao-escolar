@@ -8,7 +8,7 @@ models:
       Granularidade: 1 linha por município brasileiro.
     columns:
       - name: sk_localidade
-        description: "Surrogate Key (chave substituta) numérica sequencial, ordenada por id_municipio."
+        description: "Surrogate Key (chave substituta) imutável: hash MD5 de id_municipio. Independente de ordenação ou recarga."
         tests:
           - unique
           - not_null
@@ -44,6 +44,31 @@ models:
 
       - name: nome_regiao_geografica_imediata
         description: "Nome da Região Geográfica Imediata em maiúsculas."
+
+  - name: dim_rede
+    description: |
+      Dimensão de Rede de Ensino. Snapshot estático (Type 1).
+      Fonte: Dados do IDEB (INEP) - coluna REDE.
+      Granularidade: 1 linha por rede.
+      Redes: ESTADUAL (id=2), MUNICIPAL (id=4), FEDERAL (id=6). PÚBLICA removida (é agregado de Estadual + Municipal).
+    columns:
+      - name: sk_rede
+        description: "Surrogate Key (chave substituta) imutável: hash MD5 de nome_rede. Usada para JOINs em fatos."
+        tests:
+          - unique
+          - not_null
+
+      - name: id_rede
+        description: "Chave Natural: código arbitrário da rede (2=ESTADUAL, 4=MUNICIPAL, 6=FEDERAL)."
+        tests:
+          - unique
+          - not_null
+
+      - name: id_nome_rede
+        description: "Descrição composta: id_rede + ' - ' + rede (formato: '2 - ESTADUAL', '4 - MUNICIPAL', '6 - FEDERAL')."
+
+      - name: nome_rede
+        description: "Nome amigável da rede de ensino em maiúsculas (REDE ESTADUAL, REDE MUNICIPAL, REDE FEDERAL)."
 
   - name: fato_projetos_ia
     description: |
@@ -191,3 +216,98 @@ models:
           Taxa de distorção idade-série no Ensino Médio.
           Unidade: percentual (0-100).
           Valores nulos indicam ausência de dados.
+
+  - name: fato_ideb
+    description: |
+      Fato: Índice de Desenvolvimento da Educação Básica (IDEB).
+      Fonte: Instituto Nacional de Estudos e Pesquisas Educacionais (INEP).
+      Granularidade: 1 linha por município + ano + rede (ESTADUAL, MUNICIPAL, FEDERAL).
+      Período: Bienal 2005-2023. PÚBLICA removida (é agregado de Estadual + Municipal).
+
+      O IDEB sintetiza aprovação escolar e desempenho nas avaliações (SAEB).
+      Fórmula: IDEB = Nota SAEB × Taxa de Aprovação.
+      Valores esperados: índice 0-10.
+    columns:
+      - name: sk_localidade
+        description: "Foreign Key para dim_localidade."
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_localidade')
+                field: sk_localidade
+
+      - name: sk_rede
+        description: "Foreign Key para dim_rede."
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_rede')
+                field: sk_rede
+
+      - name: ano
+        description: "Ano de referência do IDEB (bienal: 2005, 2007, ..., 2023)."
+        tests:
+          - not_null
+
+      - name: ideb_observado
+        description: |
+          IDEB Observado (índice 0-10) - métrica principal calculada pelo INEP.
+          Unidade: índice (0-10).
+          Valores nulos indicam ausência de dados.
+
+      - name: ideb_projecao
+        description: |
+          IDEB Projeção/Meta (índice 0-10) - meta estabelecida para o ciclo.
+          Unidade: índice (0-10).
+
+      - name: nota_media_saeb
+        description: |
+          Nota média SAEB (Matemática + Português / 2) - componente do IDEB.
+          Unidade: pontos SAEB (2 casas decimais).
+
+      - name: nota_matematica_saeb
+        description: |
+          Nota SAEB em Matemática - componente do IDEB.
+          Unidade: pontos SAEB (2 casas decimais).
+
+      - name: nota_portugues_saeb
+        description: |
+          Nota SAEB em Português - componente do IDEB.
+          Unidade: pontos SAEB (2 casas decimais).
+
+      - name: taxa_aprovacao_series_iniciais
+        description: |
+          Taxa de aprovação nas Séries Iniciais (1º ao 5º ano) - componente do IDEB.
+          Unidade: decimal (0-1). No Metabase, configurar como percentual.
+
+      - name: taxa_aprovacao_si_4ano
+        description: |
+          Taxa de aprovação no 4º ano das Séries Iniciais.
+          Unidade: decimal (0-1). No Metabase, configurar como percentual.
+
+      - name: taxa_aprovacao_1ano
+        description: |
+          Taxa de aprovação no 1º ano.
+          Unidade: decimal (0-1). No Metabase, configurar como percentual.
+
+      - name: taxa_aprovacao_2ano
+        description: |
+          Taxa de aprovação no 2º ano.
+          Unidade: decimal (0-1). No Metabase, configurar como percentual.
+
+      - name: taxa_aprovacao_3ano
+        description: |
+          Taxa de aprovação no 3º ano.
+          Unidade: decimal (0-1). No Metabase, configurar como percentual.
+
+      - name: taxa_aprovacao_4ano
+        description: |
+          Taxa de aprovação no 4º ano.
+          Unidade: decimal (0-1). No Metabase, configurar como percentual.
+
+      - name: indicador_rendimento
+        description: |
+          Indicador de Rendimento (fluxo escolar) - componente do IDEB.
+          Unidade: decimal (0-1).
