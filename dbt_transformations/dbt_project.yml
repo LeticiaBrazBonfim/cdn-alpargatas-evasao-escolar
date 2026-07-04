@@ -24,9 +24,7 @@ clean-targets:         # directories to be removed by `dbt clean`
 # files using the `{{ config(...) }}` macro.
 models:
   dbt_transformations:
-    raw:
-      +materialized: table
     staging:
-      +materialized: table
+      +materialized: view
     core:
       +materialized: table

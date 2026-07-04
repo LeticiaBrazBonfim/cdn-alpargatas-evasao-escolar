@@ -1,298 +1,50 @@
-# 🔧 Guia Interno: Fluxo e Execução do Pipeline dbt
+# Guia Interno — Pipeline dbt
 
-## 📋 Índice
+## Índice
 1. [Visão Geral do Fluxo](#visão-geral-do-fluxo)
-2. [Estrutura do Projeto dbt](#estrutura-do-projeto-dbt)
-3. [Explicação Detalhada das Camadas](#explicação-detalhada-das-camadas)
-4. [Pré-requisitos e Instalação](#pré-requisitos-e-instalação)
-5. [Executando o Pipeline](#executando-o-pipeline)
-6. [Documentação dos Modelos](#documentação-dos-modelos)
-7. [Testes e Validação](#testes-e-validação)
+2. [Pré-requisitos](#pré-requisitos)
+3. [Setup Inicial](#setup-inicial)
+4. [Comandos de Execução](#comandos-de-execução)
+5. [Modelos Detalhados](#modelos-detalhados)
+6. [Testes e Validação](#testes-e-validação)
+7. [DDL Constraints (Opcional)](#ddl-constraints)
 8. [Troubleshooting](#troubleshooting)
 
 ---
 
-## 🔄 Visão Geral do Fluxo
+## Visão Geral do Fluxo
 
-O pipeline segue o padrão **ELT (Extract, Load, Transform)** com três camadas bem definidas:
+Pipeline ELT com 3 camadas:
 
 ```
-                ┌─────────────────────────────────────────────────────────────┐
-                │              DADOS BRUTOS EM PARQUET (data/raw/)            │
-                │   (dtb_municipios.parquet, pib_municipios.parquet, etc)    │
-                └──────────────────────────┬──────────────────────────────────┘
-                                           │
-                            load_raw_to_postgres.py
-                            (usa DuckDB para ler parquets)
-                                           ↓
-                ┌─────────────────────────────────────────────────────────────┐
-                │          CAMADA RAW (raw schema no Postgres)               │
-                │    raw_dtb.sql, raw_pib_municipios.sql, etc                │
-                │  • Cria tabelas: raw.dtb_municipios, raw.pib_municipios    │
-                │  • Replicação 1:1 (sem transformação)                      │
-                │  • ⚠️  load_raw_to_postgres.py cria APENAS schema raw      │
-                └──────────────────────────┬──────────────────────────────────┘
-                                           │
-                                    dbt run --target dev
-                                           ↓
-                ┌─────────────────────────────────────────────────────────────┐
-                │        CAMADA STAGING (stg_* models)                        │
-                │    stg_dtb.sql, stg_pib_municipios.sql, etc                │
-                │  • Limpeza, casting, validação                             │
-                │  • Enriquecimento (lookups, concatenações)                 │
-                │  • Sem agregações ainda                                    │
-                └──────────────────────────┬──────────────────────────────────┘
-                                           │
-                                    dbt run --target dev
-                                           ↓
-                ┌─────────────────────────────────────────────────────────────┐
-                │        CAMADA CORE (modelo Kimball)                        │
-                │  ┌────────────────────────────────────────────────────────┐ │
-                │  │ DIMENSÕES: dim_localidade                             │ │
-                │  └────────────────────────────────────────────────────────┘ │
-                │  ┌────────────────────────────────────────────────────────┐ │
-                │  │ FATOS: fato_projetos_ia, fato_socioeconomica,         │ │
-                │  │        fato_taxa_distorcao                            │ │
-                │  └────────────────────────────────────────────────────────┘ │
-                └──────────────────────────┬──────────────────────────────────┘
-                                           │
-                                    dbt test --target dev
-                                           ↓
-                 ┌─────────────────────────────────────────────────────────────┐
-                 │          VALIDAÇÃO (22 testes automáticos)                 │
-                 │  • Unicidade, integridade referencial, not null           │
-                 └─────────────────────────────────────────────────────────────┘
+data/raw/*.parquet
+    ↓  load_raw_to_postgres.py (DuckDB → Neon)
+raw.dtb_municipios, raw.pib_municipios, raw.projetos_ia,
+raw.ideb_municipios, raw.taxa_distorcao
+    ↓  dbt run
+stg_dtb, stg_pib_municipios, stg_projetos_ia, stg_ideb, stg_taxa_distorcao  (views, 1:1)
+    ↓  dbt run
+dim_localidade → fato_ideb, fato_projetos_ia, fato_socioeconomica, fato_taxa_distorcao
+dim_rede
+    ↓  dbt test
+41 testes de integridade
+    ↓  Metabase
+Dashboards analíticos
 ```
+
+**Ordem de execução padrão:**
+1. `python scripts/load_raw_to_postgres.py --target dev --if-exists replace` (1x ou quando os parquets mudarem)
+2. `dbt run --target dev`
+3. `dbt test --target dev`
 
 ---
 
-## 📁 Estrutura do Projeto dbt
+## Pré-requisitos
 
-```
-dbt_transformations/
-├── dbt_project.yml                      # Configuração principal (profile, versão, etc)
-├── README.md                            # Quick start (leia primeiro!)
-├── GUIA_INTERNO.md                      # Este arquivo (documentação completa)
-│
-├── macros/                              # Funções reutilizáveis SQL
-│   ├── safe_cast.sql                    # Casting seguro com tratamento de nulos
-│   └── parquet.sql                      # Exportação em parquet (futuro)
-│
-├── models/
-│   ├── raw/                             # CAMADA 1: Dados brutos (sem transformação)
-│   │   ├── raw_dtb.sql                  # → raw.dtb_municipios
-│   │   ├── raw_pib_municipios.sql       # → raw.pib_municipios
-│   │   ├── raw_projetos_ia.sql          # → raw.projetos_ia
-│   │   └── raw_taxa_distorcao.sql       # → raw.taxa_distorcao
-│   │
-│   ├── staging/                         # CAMADA 2: Limpeza e validação
-│   │   ├── sources.yml                  # Definição das fontes raw
-│   │   ├── stg_schema.yml               # Testes do staging (unique, not_null)
-│   │   ├── stg_dtb.sql                  # Staging da DTB
-│   │   ├── stg_pib_municipios.sql       # Staging do PIB (casting NUMERIC)
-│   │   ├── stg_projetos_ia.sql          # Staging com lookup IBGE + data cleansing
-│   │   └── stg_taxa_distorcao.sql       # Staging com safe_cast de taxas
-│   │
-│   └── core/                            # CAMADA 3: Modelo dimensional (Kimball)
-│       ├── schema.yml                   # Documentação + testes de integridade
-│       ├── dim_localidade.sql           # DIMENSÃO: 1 linha por município
-│       ├── fato_projetos_ia.sql         # FATO: projetos IA (município + ano)
-│       ├── fato_socioeconomica.sql      # FATO: PIB e VA (município + ano)
-│       └── fato_taxa_distorcao.sql      # FATO: taxa distorção (município + ano + categoria + dependência)
-│
-├── scripts/
-│   └── load_raw_to_postgres.py          # Script Python: carrega Parquets → raw schema
-│                                         # Usa DuckDB para ler .parquet
-│                                         # ⚠️  Cria APENAS schema raw (não é dbt run)
-│
-└── tests/                               # Testes customizados (vazio por enquanto)
-    └── .gitkeep
-```
+- **Python 3.10+** com `pip install -r requirements.txt` (dbt-postgres, duckdb)
+- **Neon** (Postgres) com schema `dev` configurado
+- **`~/.dbt/profiles.yml`** com credenciais:
 
-**Ordem de execução:**
-1. `load_raw_to_postgres.py` → cria schema `raw`
-2. `dbt run` → constrói staging + core
-3. `dbt test` → valida integridade
-
-
----
-
-## 📚 Explicação Detalhada das Camadas
-
-### 🔴 CAMADA RAW (raw_*)
-**Objetivo**: Replicar os dados exatamente como vêm dos Parquets
-
-**Como funciona:**
-1. Script Python `load_raw_to_postgres.py` executa:
-   - Lê cada `.parquet` em `data/raw/` usando **DuckDB**
-   - Cria schema `raw` no Neon (se não existir)
-   - Carrega dados em tabelas: `raw.dtb_municipios`, `raw.pib_municipios`, etc
-   - **⚠️ Este script NÃO usa dbt, cria dados puros no Neon**
-
-2. Modelos dbt `raw_*.sql` (4 modelos):
-   - `raw_dtb.sql`: `SELECT * FROM raw.dtb_municipios` (sem transformação)
-   - `raw_pib_municipios.sql`: Idem para PIB
-   - `raw_projetos_ia.sql`: Idem para projetos
-   - `raw_taxa_distorcao.sql`: Idem para taxa
-   - **Objetivo**: Replicar 1:1 os dados raw no schema dbt
-
-**Fluxo visual:**
-```
-data/raw/dtb_municipios.parquet
-         ↓ (DuckDB lê)
-load_raw_to_postgres.py
-         ↓ (cria)
-raw.dtb_municipios (tabela Postgres)
-         ↓ (dbt replica)
-raw_dtb.sql (modelo dbt)
-```
-
-**Quando executar:**
-- Na primeira execução do projeto (1x)
-- Quando os Parquets são atualizados
-- Raramente - geralmente apenas initial setup
-
-**Verificar se funcionou:**
-```sql
--- No Postgres/Neon:
-SELECT * FROM raw.dtb_municipios LIMIT 5;
-SELECT COUNT(*) FROM raw.pib_municipios;
--- Se retorna dados, o script funcionou!
-```
-
-**Comando:**
-```bash
-# Na primeira vez
-python scripts/load_raw_to_postgres.py --target dev --if-exists replace
-
-# Sem recarregar dados
-dbt run --select raw_dtb raw_pib_municipios raw_projetos_ia raw_taxa_distorcao
-```
-
----
-
-### 🟡 CAMADA STAGING (stg_*)
-**Objetivo**: Limpar, validar e enriquecer os dados
-
-**O que acontece em cada modelo:**
-
-#### **stg_dtb.sql** (Diretório Territorial)
-- **Input**: `raw.dtb_municipios` (5.571 municípios)
-- **Transformações**:
-  - Casting de IDs para INTEGER
-  - UPPER e TRIM em nomes
-- **Output**: 5.571 linhas, colunas tipadas corretamente
-- **Testes**: `unique` e `not_null` em `id_municipio`
-
-#### **stg_pib_municipios.sql** (Produto Interno Bruto)
-- **Input**: `raw.pib_municipios` (66.825 linhas)
-- **Transformações**:
-  - Casting de ano e id_municipio para INTEGER
-  - Casting de valores monetários para NUMERIC
-  - Nomes descritivos para colunas (ex: `pib_agropecuaria`)
-- **Output**: 66.825 linhas, 2010-2021, validadas
-- **Testes**: `not_null` em ano e id_municipio
-
-#### **stg_projetos_ia.sql** (Projetos Alpargatas)
-- **Input**: `raw.projetos_ia` (135 linhas cruas)
-- **Transformações**:
-  - **Data Cleansing**: Corrige nomes malformados
-    - `'CAMPINA GRANDE- MIXING CENTER'` → `'CAMPINA GRANDE'`
-    - `'QUEIMADAS *'` → `'QUEIMADAS'`
-  - **Lookup com dicionário IBGE**: JOIN com `stg_dtb` para obter `id_municipio` oficial
-  - **Pivotamento**: Soma colunas de projetos (5 variações)
-  - **Agregação**: Total por município + ano
-- **Output**: 112 linhas (município + ano únicos)
-- **Testes**: `not_null` em id_municipio (via relationship)
-
-#### **stg_taxa_distorcao.sql** (Educação)
-- **Input**: `raw.taxa_distorcao` (327.944 linhas)
-- **Transformações**:
-  - Casting de ano e id_municipio para INTEGER
-  - Safe casting de taxas (trata '--' como NULL)
-  - Uppercase em categorizações
-- **Output**: 327.934 linhas (removidas as com CO_MUNICIPIO nulo)
-- **Nota**: Mantém granularidade (categoria + dependência por município)
-
----
-
-### 🟢 CAMADA CORE (modelo Kimball)
-**Objetivo**: Criar estrutura dimensional para análise
-
-#### **dim_localidade** (DIMENSÃO)
-- **Granularidade**: 1 linha por município
-- **Colunas**:
-  - `sk_localidade` (PK): Numérica sequencial (row_number)
-  - `id_municipio` (NK): Business Key
-  - Atributos: nome, UF, região geográfica
-- **Input**: `stg_dtb` (5.571 linhas)
-- **Output**: `dim_localidade` (5.571 linhas)
-- **Testes**: `unique` e `not_null` em sk_localidade
-
-#### **fato_projetos_ia** (FATO)
-- **Granularidade**: 1 linha por (município + ano)
-- **Colunas**:
-  - `sk_localidade` (FK): Referencia dim_localidade
-  - `ano`: Ano de execução
-  - `quantidade_projetos`: Métrica agregada
-  - `quantidade_beneficiados`: Métrica agregada
-- **Input**: `stg_projetos_ia`
-- **Output**: 112 linhas
-- **Lógica**: JOIN stg_projetos_ia → dim_localidade, depois agrega por município+ano
-- **Testes**: `not_null` em colunas, `relationships` para FK
-
-#### **fato_socioeconomica** (FATO)
-- **Granularidade**: 1 linha por (município + ano)
-- **Colunas**:
-  - `sk_localidade` (FK): Referencia dim_localidade
-  - `ano`: Ano de referência
-  - `va_bruto_agropecuaria` até `va_bruto_total`: Valor adicionado por setor
-  - `impostos_liquidos`: Diferença PIB - VAB
-  - `pib_total`: Métrica final
-- **Input**: `stg_pib_municipios`
-- **Output**: 66.825 linhas (todos os municípios × anos)
-- **Nota**: PIB per capita removido (sem dados populacionais)
-- **Testes**: `not_null` em colunas críticas, `relationships` para FK
-
-#### **fato_taxa_distorcao** (FATO)
-- **Granularidade**: 1 linha por (município + ano + categoria_localidade + dependencia_administrativa)
-- **Colunas**:
-  - `sk_localidade` (FK): Referencia dim_localidade
-  - `ano`: Ano do censo
-  - `categoria_localidade`: Urbana/Rural
-  - `dependencia_administrativa`: Federal/Estadual/Municipal/Privada
-  - `taxa_distorcao_ensino_fundamental`: Métrica (0-100%)
-  - `taxa_distorcao_ensino_medio`: Métrica (0-100%)
-- **Input**: `stg_taxa_distorcao`
-- **Output**: 327.934 linhas
-- **Nota**: Mantém granularidade máxima (não agrega)
-- **Testes**: `not_null` em colunas críticas, `relationships` para FK
-
----
-
-## 📦 Pré-requisitos e Instalação
-
-### Ferramentas Necessárias
-1. **Neon** (Postgres na nuvem) - Banco de dados
-2. **dbt** - Ferramenta de transformação (v1.11+)
-3. **Python 3.10+** - Para script de carregamento
-4. **DuckDB** - Lê arquivos Parquet (usado em load_raw_to_postgres.py)
-
-### Setup Inicial
-
-**1. Instalar dbt e dependências:**
-```bash
-cd dbt_transformations
-pip install -r requirements.txt
-```
-
-O arquivo `requirements.txt` contém:
-- `dbt-postgres==1.10.1` - Adaptador dbt para Postgres
-- `duckdb==1.5.4` - Leitura de arquivos .parquet
-
-**2. Configurar conexão com Neon:**
-
-Criar arquivo `~/.dbt/profiles.yml`:
 ```yaml
 alpargatas-impacto-educacional:
   outputs:
@@ -302,321 +54,357 @@ alpargatas-impacto-educacional:
       user: [seu-usuario]
       password: [sua-senha]
       port: 5432
-      dbname: neondb              # Nome do banco (padrão Neon)
-      schema: dev                 # Schema onde os modelos serão criados
-      threads: 4                  # Paralelização
-      keepalives_idle: 0          # Manter conexão ativa
-      sslmode: require            # SSL obrigatório para Neon
-  target: dev                     # Target padrão
-```
-
-### Targets: dev vs prod
-
-O arquivo `profiles.yml` suporta múltiplos targets:
-
-```yaml
-alpargatas-impacto-educacional:
-  outputs:
-    dev:                          # Desenvolvimento (schema: dev)
-      type: postgres
-      ...
+      dbname: neondb
       schema: dev
-    
-    prod:                         # Produção (schema: public)
+      threads: 4
+      sslmode: require
+    prod:
       type: postgres
-      ...
+      host: [seu-host-neon]
+      user: [seu-usuario]
+      password: [sua-senha]
+      port: 5432
+      dbname: neondb
       schema: public
-  
-  target: dev                     # Target padrão (desenvolvimento)
+      threads: 4
+      sslmode: require
+  target: dev
 ```
-
-**Executar com targets diferentes:**
-```bash
-dbt run --target dev              # Executa em dev (padrão)
-dbt run --target prod             # Executa em prod
-dbt test --target dev             # Testa dev
-dbt parse --target prod           # Parse apenas de prod
-```
-
-**3. Testar conexão:**
-```bash
-dbt debug
-```
-
-Esperado: `All checks passed!`
-
 
 ---
 
-## ⚙️ Executando o Pipeline
+## Setup Inicial
 
-### Comandos Principais de dbt
-
-#### **dbt parse** (Validação sem execução)
-Valida a sintaxe YAML e SQL sem executar nada no banco:
-```bash
-dbt parse --target dev
-```
-- Lê `dbt_project.yml`, `schema.yml`, todos os `.sql`
-- Detecta erros de YAML, referências circulares, sintaxe
-- **Uso**: Rodar antes de `dbt run` para detectar problemas
-- **Tempo**: ~5 segundos
-
-#### **dbt run** (Executa transformações)
-Constrói todas as tabelas (raw → staging → core):
-```bash
-dbt run --target dev              # Modo padrão
-dbt run --target prod             # Produção
-dbt run --select dim_localidade   # Apenas um modelo
-```
-- Executa em paralelo (4 threads por padrão)
-- Respeita dependências entre modelos
-- **Tempo**: ~15 segundos (completo)
-
-#### **dbt test** (Valida integridade)
-Executa 22 testes automáticos:
-```bash
-dbt test --target dev
-dbt test --select fato_projetos_ia  # Testes de um modelo
-```
-- Tests: unique, not_null, relationships
-- **Tempo**: ~10 segundos
-
----
-
-### ✅ Execução Completa (Recomendado)
-
-**Ordem correta de execução:**
-
-#### **Passo 1: Validar sintaxe (opcional mas recomendado)**
 ```bash
 cd dbt_transformations
+pip install -r requirements.txt
+dbt debug              # Verificar conexão
+```
+
+---
+
+## Comandos de Execução
+
+### Carga dos dados brutos (1x ou quando parquets forem atualizados)
+
+```bash
+python scripts/load_raw_to_postgres.py --target dev --if-exists replace
+```
+
+**Flags:**
+| Flag | Função |
+|------|--------|
+| `--target dev` | Usa credenciais do target `dev` no profiles.yml |
+| `--if-exists replace` | Recria as tabelas raw (DROP + CREATE) |
+| `--if-exists skip` | Mantém tabelas existentes |
+| `--if-exists fail` | Erro se tabela já existir (padrão) |
+| `--schema raw` | Schema de destino (padrão: schema do target) |
+
+**O script faz:** Lê todos os `.parquet` de `data/raw/` via DuckDB, cria tabelas no Neon com **todas as colunas como TEXT** (preservação bruta), usa `COPY` para bulk load.
+
+**Verificar:**
+```sql
+SELECT COUNT(*) FROM raw.dtb_municipios;       -- 5571
+SELECT COUNT(*) FROM raw.pib_municipios;        -- 66825
+SELECT COUNT(*) FROM raw.projetos_ia;           -- 135
+SELECT COUNT(*) FROM raw.ideb_municipios;       -- ~1430
+SELECT COUNT(*) FROM raw.taxa_distorcao;        -- ~327944
+```
+
+### dbt parse (validar sintaxe sem executar)
+
+```bash
 dbt parse --target dev
 ```
-- **Output esperado**: `Parsing complete` sem erros
-- **Tempo**: ~5 segundos
 
-#### **Passo 2: Carregar dados brutos (1x apenas)**
+### dbt run (executar transformações)
+
 ```bash
-python scripts/load_raw_to_postgres.py --target dev --if-exists replace
-```
-
-**O que esse script faz:**
-- Lê cada `.parquet` em `data/raw/`
-- Usa **DuckDB** para ler parquets
-- Cria schema `raw` no Neon (se não existir)
-- Carrega dados para tabelas raw:
-  - `raw.dtb_municipios` (5.571 linhas)
-  - `raw.pib_municipios` (66.825 linhas)
-  - `raw.projetos_ia` (135 linhas)
-  - `raw.taxa_distorcao` (327.944 linhas)
-
-**⚠️ IMPORTANTE:** Este script **NÃO é um modelo dbt**. Ele cria apenas o schema raw. Os modelos `raw_*.sql` (modelos dbt) apenas replicam essas tabelas.
-
-**Verificar se funcionou:**
-```sql
-SELECT * FROM raw.dtb_municipios LIMIT 5;    -- Deve retornar 5 linhas
-SELECT COUNT(*) FROM raw.pib_municipios;     -- Deve retornar 66825
-```
-
-**Opções:**
-```bash
-# Se já existem dados e quer recarregar
-python scripts/load_raw_to_postgres.py --target dev --if-exists replace
-
-# Se quer apenas validar sem substituir
-python scripts/load_raw_to_postgres.py --target dev --if-exists skip
-
-# Falhar se a tabela já existe (padrão)
-python scripts/load_raw_to_postgres.py --target dev --if-exists fail
-```
-
-#### **Passo 3: Executar pipeline dbt**
-```bash
+# Completo (todos os modelos)
 dbt run --target dev
+
+# Modelo específico
+dbt run --select fato_ideb --target dev
+
+# Modelo + dependentes
+dbt run --select +dim_localidade --target dev
+
+# Apenas staging
+dbt run --select tag:staging --target dev
+
+# Apenas core
+dbt run --select tag:core --target dev
 ```
 
-- Executa modelos em ordem de dependência
-- Raw models (simples replicação de raw schema)
-- Staging models (limpeza, validação)
-- Core models (dimensões, fatos)
+### dbt test (validar integridade)
 
-- **Tempo esperado**: ~15 segundos
-- **Output**: 12 tabelas criadas
-  ```
-  ✓ 4 raw tables
-  ✓ 4 staging tables
-  ✓ 4 core tables (1 dimensão + 3 fatos)
-  ```
-
-#### **Passo 4: Validar integridade**
 ```bash
+# Completo (41 testes)
 dbt test --target dev
+
+# Modelo específico
+dbt test --select dim_localidade --target dev
+
+# Apenas relações
+dbt test --select tag:relationships --target dev
+
+# Apenas singulares (chaves compostas)
+dbt test --select test_type:singular --target dev
 ```
 
-- Executa 22 testes automáticos
-- **Tempo esperado**: ~10 segundos
-- **Sucesso esperado**: `PASS=22 FAIL=0 ERROR=0`
+### dbt docs (documentação interativa)
 
-#### **Passo 5 (Opcional): Gerar documentação interativa**
 ```bash
 dbt docs generate --target dev
-dbt docs serve
-```
-
-- Abre em `http://localhost:8000`
-- Mostra lineage (DAG) de todos os modelos
-- Exibe documentação de cada tabela/coluna
-- Lista dependências
-
----
-
-### 🔄 Execuções Subsequentes
-
-**Se apenas os dados foram atualizados (novos parquets):**
-```bash
-python scripts/load_raw_to_postgres.py --target dev --if-exists replace
-dbt run --target dev
-dbt test --target dev
-```
-
-**Se apenas o código SQL foi alterado:**
-```bash
-dbt parse --target dev      # Validar antes
-dbt run --target dev        # Executar
-dbt test --target dev       # Testar
-```
-
-**Se quer recriar uma tabela específica:**
-```bash
-dbt run --select fato_projetos_ia --target dev
-dbt test --select fato_projetos_ia --target dev
-```
-
-**Se quer executar um modelo e suas dependências:**
-```bash
-dbt run --select +dim_localidade --target dev   # Reconstrói dim + tudo que depende
+dbt docs serve               # http://localhost:8000
 ```
 
 ---
 
-## 📖 Documentação dos Modelos
+## Modelos Detalhados
 
-### Consultar informações de um modelo
+### Staging (5 views — 1:1 com raw, sem regras de negócio)
 
-```bash
-# Mostrar schema de uma tabela
-dbt show --select dim_localidade
+#### `stg_dtb`
+- **Fonte**: `raw.dtb_municipios`
+- **Transformações**: CAST ids para INTEGER, UPPER(TRIM) em nomes
+- **Colunas**: id_municipio, nome_municipio, id_uf, nome_uf, id_regiao_geografica_imediata, nome_regiao_geografica_imediata
+- **Testes**: `unique` + `not_null` em id_municipio
+- **Linhas**: 5.571
 
-# Mostrar dependências
-dbt run --select dim_localidade --graph
+#### `stg_pib_municipios`
+- **Fonte**: `raw.pib_municipios`
+- **Transformações**: CAST ids/ano para INTEGER, REPLACE aninhadas (pt-BR → US) + CAST NUMERIC nos valores monetários
+- **Colunas**: id_municipio, ano_competencia, va_bruto_*, impostos_liquidos, pib_total, pib_per_capita
+- **Testes**: `not_null` em id_municipio + ano_competencia, `relationships` → stg_dtb
+- **Singular**: unique_combination_stg_pib_municipios (id_municipio, ano_competencia)
+- **Linhas**: 66.825
 
-# Mostrar quem depende deste modelo
-dbt run --select +dim_localidade
-```
+#### `stg_projetos_ia`
+- **Fonte**: `raw.projetos_ia`
+- **Transformações**: CAST para INTEGER nas 12 colunas métricas, nomes em snake_case
+- **Colunas**: ano_competencia, sigla_uf, nome_municipio, projetos_1..6, beneficiados_1..6
+- **Observação**: JOIN com stg_dtb NÃO é feito aqui (seria violação 1:1). O lookup é feito no fato.
+- **Testes**: `not_null` em ano_competencia
+- **Linhas**: 135
 
-### Acessar documentação no código
+#### `stg_ideb`
+- **Fonte**: `raw.ideb_municipios`
+- **Transformações**: Wide format (100+ colunas de métricas por ano), safe_cast_numeric_column com '-', Jinja gera colunas para 10 anos (2005-2023)
+- **Colunas**: id_municipio, nome_municipio, sigla_uf, nome_rede, vl_observado_2005..vl_indicador_rend_2023
+- **Testes**: `not_null` + `relationships` em id_municipio → stg_dtb
+- **Singular**: unique_combination_stg_ideb (id_municipio, nome_rede)
+- **Linhas**: ~1.430
 
-Cada modelo tem comentário no topo:
+#### `stg_taxa_distorcao`
+- **Fonte**: `raw.taxa_distorcao`
+- **Transformações**: safe_cast_numeric_column com '--', UPPER em categorias
+- **Colunas**: id_municipio, ano_competencia, categoria_localidade, dependencia_administrativa, taxa_distorcao_*
+- **Testes**: `not_null` em id_municipio, ano_competencia, categoria_localidade, dependencia_administrativa; `relationships` → stg_dtb
+- **Singular**: unique_combination_stg_taxa_distorcao (id_municipio, ano_competencia, categoria_localidade, dependencia_administrativa)
+- **Linhas**: 327.934
+
+---
+
+### Core (6 tabelas — modelo dimensional Kimball)
+
+#### `dim_localidade`
+- **Tipo**: Dimensão (Type 1)
+- **SK**: `MD5(CAST(id_municipio AS VARCHAR))` — hash imutável e idempotente
+- **Granularidade**: 1 linha por município
+- **Fonte**: `stg_dtb` com `SELECT DISTINCT`
+- **Atributos**: nome_municipio, id_uf, nome_uf, id_regiao_geografica_imediata, nome_regiao_geografica_imediata; colunas compostas `id_nome_*` via CONCAT
+- **Testes**: `unique` + `not_null` em sk_localidade e id_municipio
+- **Linhas**: 5.571
+
+#### `dim_rede`
+- **Tipo**: Dimensão (Type 1)
+- **SK**: `MD5(nome_rede)` — hash imutável
+- **Granularidade**: 1 linha por rede (3 registros)
+- **Fonte**: `stg_ideb` com `SELECT DISTINCT`, filtro IN ('ESTADUAL', 'MUNICIPAL', 'FEDERAL')
+- **Atributos**: nome_rede, id_rede (2, 4, 6), id_nome_rede (CONCAT)
+- **Testes**: `unique` + `not_null` em sk_rede e id_rede
+- **Linhas**: 3
+
+#### `fato_ideb`
+- **Granularidade**: município + rede + ano
+- **Fonte**: `stg_ideb` (UNPIVOT via Jinja `{% for ano in anos %} UNION ALL`)
+- **Regras de negócio** (na CTE `unpivot`):
+  - `ROUND(vl_nota_*, 2)` nas notas SAEB
+  - `/ 100.0` nas taxas de aprovação
+  - `ideb_projecao` apenas para anos 2007-2021 (CAST NULL para demais)
+- **Filtro**: WHERE com 13 condições OR metric IS NOT NULL (elimina linhas totalmente vazias)
+- **JOINs**: dim_rede (3 linhas) primeiro, dim_localidade (5.571) segundo — otimizado por cardinalidade
+- **Testes**: `not_null` em sk_localidade, sk_rede, ano; `relationships` → dim_localidade e dim_rede
+- **Linhas**: 82.726
+
+#### `fato_projetos_ia`
+- **Granularidade**: município + ano
+- **Fonte**: `stg_projetos_ia`
+- **Regras de negócio** (na CTE `clean`):
+  - CASE WHEN para corrigir nomes: 'CAMPINA GRANDE- MIXING CENTER' → 'CAMPINA GRANDE', 'QUEIMADAS *' → 'QUEIMADAS'
+  - COALESCE em cada coluna `projetos_N` + soma (6 colunas → 1 métrica)
+  - COALESCE em cada coluna `beneficiados_N` + soma (6 colunas → 1 métrica)
+- **Lookup**: CTE `uf_mapping` (VALUES com 27 UFs sigla→nome_completo) resolve sigla_uf → nome_uf para JOIN
+- **JOIN**: `nome_municipio + nome_uf` (duas condições) previne cartesiano entre cidades homônimas
+- **Testes**: `not_null` em sk_localidade, ano, quantidade_projetos, quantidade_beneficiados; `relationships` → dim_localidade
+- **Linhas**: 100
+
+#### `fato_socioeconomica`
+- **Granularidade**: município + ano
+- **Fonte**: `stg_pib_municipios`
+- **JOIN**: `id_municipio` (numérico)
+- **Testes**: `not_null` em sk_localidade, ano; `relationships` → dim_localidade
+- **Linhas**: 66.825
+
+#### `fato_taxa_distorcao`
+- **Granularidade**: município + ano + categoria_localidade + dependencia_administrativa
+- **Fonte**: `stg_taxa_distorcao`
+- **JOIN**: `id_municipio` (numérico)
+- **Testes**: `not_null` em sk_localidade, ano; `relationships` → dim_localidade
+- **Linhas**: 327.934
+
+---
+
+## Testes e Validação
+
+### 41 testes distribuídos:
+
+| Tipo | Qtd | O que testa |
+|------|-----|-------------|
+| `not_null` | 25 | Colunas obrigatórias em staging + dimensões + fatos |
+| `unique` | 5 | SKs (sk_localidade, sk_rede) e NKs (id_municipio, id_rede) |
+| `relationships` | 8 | FKs nos fatos → dimensões; FKs staging → stg_dtb |
+| Singulares (SQL) | 3 | Chaves compostas: (id_municipio, ano) no PIB; (id_municipio, nome_rede) no IDEB; (4 colunas) na taxa_distorcao |
+
+### Testes por modelo:
+
+**Staging:**
+| Modelo | not_null | unique | relationships | singular |
+|--------|----------|--------|---------------|----------|
+| stg_dtb | id_municipio | id_municipio | — | — |
+| stg_pib_municipios | id_municipio, ano_competencia | — | → stg_dtb | unique_combination |
+| stg_projetos_ia | ano_competencia | — | — | — |
+| stg_ideb | id_municipio | — | → stg_dtb | unique_combination |
+| stg_taxa_distorcao | id_municipio, ano_competencia, categoria_localidade, dependencia_administrativa | — | → stg_dtb | unique_combination |
+
+**Core:**
+| Modelo | not_null | unique | relationships |
+|--------|----------|--------|---------------|
+| dim_localidade | sk_localidade, id_municipio, id_uf | sk_localidade, id_municipio | — |
+| dim_rede | sk_rede, id_rede | sk_rede, id_rede | — |
+| fato_ideb | sk_localidade, sk_rede, ano | — | → dim_localidade, dim_rede |
+| fato_projetos_ia | sk_localidade, ano, quantidade_projetos, quantidade_beneficiados | — | → dim_localidade |
+| fato_socioeconomica | sk_localidade, ano | — | → dim_localidade |
+| fato_taxa_distorcao | sk_localidade, ano | — | → dim_localidade |
+
+### Diagnóstico de falhas
+
+**`not_null_stg_projetos_ia_nome_municipio` FAIL:**
+- Causa: raw.projetos_ia tem NULLs legítimos em nome_municipio
+- Ação: Remover `not_null` do schema.yml (staging é 1:1)
+
+**`relationships_fato_projetos_ia_sk_localidade` FAIL:**
+- Causa: SK no fato não encontrada na dimensão (nome_municipio + nome_uf sem match)
+- Ação: Verificar CASE WHEN de limpeza ou uf_mapping
+
+**`unique_dim_localidade_sk_localidade` FAIL:**
+- Causa: MD5 collision ou DISTINCT mal aplicado
+- Ação: Verificar se há id_municipio duplicado em stg_dtb
+
+---
+
+## DDL Constraints
+
+Constraints físicas opcionais (já validadas pelos 41 testes dbt):
+
 ```sql
-{{ config(materialized='table') }}
--- Exemplo de dim_localidade
-```
+-- Schema: substitua `dev` pelo schema alvo
 
-Cada coluna tem descrição em `schema.yml`:
-- Significado
-- Tipo de teste
-- Granularidade
+-- DIM_LOCALIDADE
+ALTER TABLE dev.dim_localidade ADD CONSTRAINT pk_dim_localidade PRIMARY KEY (sk_localidade);
+ALTER TABLE dev.dim_localidade ADD CONSTRAINT uk_dim_localidade_id_municipio UNIQUE (id_municipio);
 
----
+-- DIM_REDE
+ALTER TABLE dev.dim_rede ADD CONSTRAINT pk_dim_rede PRIMARY KEY (sk_rede);
+ALTER TABLE dev.dim_rede ADD CONSTRAINT uk_dim_rede_id_rede UNIQUE (id_rede);
 
-## ✅ Testes e Validação
+-- FATO_IDEB
+ALTER TABLE dev.fato_ideb ADD CONSTRAINT pk_fato_ideb PRIMARY KEY (sk_localidade, sk_rede, ano);
+ALTER TABLE dev.fato_ideb ADD CONSTRAINT fk_fato_ideb_dim_localidade FOREIGN KEY (sk_localidade) REFERENCES dev.dim_localidade(sk_localidade);
+ALTER TABLE dev.fato_ideb ADD CONSTRAINT fk_fato_ideb_dim_rede FOREIGN KEY (sk_rede) REFERENCES dev.dim_rede(sk_rede);
 
-### Tipos de Testes Implementados
+-- FATO_PROJETOS_IA
+ALTER TABLE dev.fato_projetos_ia ADD CONSTRAINT pk_fato_projetos_ia PRIMARY KEY (sk_localidade, ano);
+ALTER TABLE dev.fato_projetos_ia ADD CONSTRAINT fk_fato_projetos_ia_dim_localidade FOREIGN KEY (sk_localidade) REFERENCES dev.dim_localidade(sk_localidade);
 
-| Tipo | Quantidade | Descrição |
-|------|-----------|-----------|
-| `not_null` | 15 | Garante que colunas críticas não são nulas |
-| `unique` | 3 | Chaves primárias (sk_localidade, id_municipio) |
-| `relationships` | 4 | FKs apontam para PKs existentes |
-| **Total** | **22** | - |
+-- FATO_SOCIOECONOMICA
+ALTER TABLE dev.fato_socioeconomica ADD CONSTRAINT pk_fato_socioeconomica PRIMARY KEY (sk_localidade, ano);
+ALTER TABLE dev.fato_socioeconomica ADD CONSTRAINT fk_fato_socioeconomica_dim_localidade FOREIGN KEY (sk_localidade) REFERENCES dev.dim_localidade(sk_localidade);
 
-### Executar testes específicos
-
-```bash
-# Testar apenas dim_localidade
-dbt test --select dim_localidade
-
-# Testar apenas integridade referencial
-dbt test --select tag:relationships
-
-# Testar com verbosidade (mostra SQL)
-dbt test --select dim_localidade -vv
-```
-
-### Interpretando falhas
-
-**Erro: `relationships_fato_projetos_ia_sk_localidade...FAIL`**
-- Significa: Existem SKs na fato que não existem na dimensão
-- **Solução**: Verificar JOINs em `fato_projetos_ia.sql`
-
-**Erro: `unique_dim_localidade_sk_localidade...FAIL`**
-- Significa: Há SKs duplicadas na dimensão
-- **Solução**: Verificar row_number() em `dim_localidade.sql`
-
----
-
-## 🐛 Troubleshooting
-
-### Problema: `dbt debug` falha
-
-**Solução 1**: Verificar `profiles.yml`
-```bash
-cat ~/.dbt/profiles.yml | grep alpargatas
-```
-
-**Solução 2**: Testar conexão direta com Postgres
-```bash
-psql -h [host] -U [user] -d alpargatas
+-- FATO_TAXA_DISTORCAO
+ALTER TABLE dev.fato_taxa_distorcao ADD CONSTRAINT pk_fato_taxa_distorcao PRIMARY KEY (sk_localidade, ano, categoria_localidade, dependencia_administrativa);
+ALTER TABLE dev.fato_taxa_distorcao ADD CONSTRAINT fk_fato_taxa_distorcao_dim_localidade FOREIGN KEY (sk_localidade) REFERENCES dev.dim_localidade(sk_localidade);
 ```
 
 ---
 
-### Problema: `dbt run` falha em uma tabela
+## Troubleshooting
 
-**Passo 1**: Ver erro completo
+### `dbt debug` falha
 ```bash
-dbt run -vv
+cat ~/.dbt/profiles.yml
+# Verificar host, user, password, sslmode: require
 ```
 
-**Passo 2**: Testar SQL manualmente
-```sql
--- No Postgres
-SELECT * FROM dev.stg_dtb LIMIT 5;
-```
-
-**Passo 3**: Verificar dependências
+### `dbt run` falha em um modelo
 ```bash
-dbt run --select stg_dtb --graph
+dbt run --select stg_dtb -vv        # Verboso, mostra SQL compilado
+# Verificar target/compiled/ para o SQL exato
 ```
 
----
-
-### Problema: `dbt test` falha em integridade referencial
-
-**Diagnóstico**:
+### Teste de integridade referencial falha
 ```sql
 -- Encontrar chaves órfãs
-SELECT COUNT(*) FROM dev.fato_projetos_ia f 
-WHERE NOT EXISTS (SELECT 1 FROM dev.dim_localidade d WHERE d.sk_localidade = f.sk_localidade);
+SELECT f.sk_localidade
+FROM dev.fato_projetos_ia f
+LEFT JOIN dev.dim_localidade d ON d.sk_localidade = f.sk_localidade
+WHERE d.sk_localidade IS NULL;
 ```
 
-**Se > 0**: Há dados inválidos. Verificar JOIN no modelo.
+### Limpar e recriar tudo
+```bash
+# Dropa todas as tabelas/views e recria
+dbt run --full-refresh --target dev
+```
 
 ---
 
-## 📞 Suporte
+## Macros
 
-- **Dúvidas sobre dbt**: https://docs.getdbt.com/
-- **Problemas com Postgres**: Verificar logs em `target/logs/dbt.log`
-- **Problemas com Python**: Garantir virtualenv ativado (`source .venv/bin/activate`)
+### `safe_cast_numeric(string_value)` — macro raiz
+Valida string com regex antes de CAST:
+```sql
+regexp '^[+-]?([0-9]+([.][0-9]*)?|[.][0-9]+)$'
+```
+Retorna NULL se inválido.
+
+### `safe_cast_numeric_column(col, null_val)` — macro de staging
+Orquestra `adapter.quote()` + `NULLIF` para caracteres de ausência ('--', '-').
+
+### `project_metric(col)` — macro específica projetos
+Remove sufixo `.0` via `regexp_replace` antes do safe_cast.
+
+---
+
+## Targets
+
+| Target | Schema | Uso |
+|--------|--------|-----|
+| `dev` | `dev` | Desenvolvimento, testes |
+| `prod` | `public` | Produção, dashboards Metabase |
+
+```bash
+dbt run --target prod     # Cria em schema public
+dbt test --target prod    # Testa produção
+```

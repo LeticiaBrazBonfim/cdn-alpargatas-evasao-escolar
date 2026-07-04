@@ -145,16 +145,16 @@ def load_parquet(duck_connection, pg_connection, schema, path, batch_size, if_ex
 
 def parse_args():
     parser = argparse.ArgumentParser(
-        description="Carrega os Parquets de data/raw como tabelas raw no Postgres/Neon."
+        description="Carrega os Parquets de data/raw como tabelas no Postgres/Neon."
     )
     parser.add_argument("--target", help="Target do profiles.yml. Padrao: target do perfil.")
-    parser.add_argument("--schema", default="raw", help="Schema de destino. Padrao: raw.")
+    parser.add_argument("--schema", help="Schema de destino. Padrao: usa schema do target no profiles.yml.")
     parser.add_argument("--profiles-dir", help="Diretorio que contem profiles.yml.")
     parser.add_argument(
         "--if-exists",
         choices=("fail", "skip", "replace"),
         default="fail",
-        help="Comportamento quando a tabela raw ja existe. Padrao: fail.",
+        help="Comportamento quando a tabela ja existe. Padrao: fail.",
     )
     parser.add_argument("--batch-size", type=int, default=10000)
     return parser.parse_args()
@@ -170,7 +170,7 @@ def main():
     profiles_file = profile_path(args.profiles_dir)
     profile_name = project_profile_name(project_dir)
     config = target_config(profile_name, profiles_file, args.target)
-    schema = args.schema
+    schema = args.schema or config.get("schema", "public")
 
     parquet_files = sorted(data_dir.glob("*.parquet"))
     if not parquet_files:
