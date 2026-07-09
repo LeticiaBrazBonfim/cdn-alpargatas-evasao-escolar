@@ -1,11 +1,21 @@
 {{ config(materialized='table') }}
 
 WITH staging_rede AS (
-    SELECT DISTINCT
-        nome_rede
+    SELECT UPPER(TRIM(nome_rede)) AS nome_rede
     FROM {{ ref('stg_ideb') }}
     WHERE nome_rede IS NOT NULL
-      AND nome_rede IN ('ESTADUAL', 'MUNICIPAL', 'FEDERAL')
+
+    UNION
+
+    SELECT UPPER(TRIM(dependencia_administrativa))
+    FROM {{ ref('stg_taxa_distorcao') }}
+    WHERE dependencia_administrativa IS NOT NULL
+),
+
+rede_padronizada AS (
+    SELECT DISTINCT nome_rede
+    FROM staging_rede
+    WHERE nome_rede IN ('ESTADUAL', 'MUNICIPAL', 'FEDERAL', 'PRIVADA', 'TOTAL')
 ),
 
 dim_rede AS (
@@ -16,14 +26,25 @@ dim_rede AS (
             WHEN 'ESTADUAL'  THEN 2
             WHEN 'MUNICIPAL' THEN 4
             WHEN 'FEDERAL'   THEN 6
+            WHEN 'PRIVADA'   THEN 8
         END AS id_rede
-    FROM staging_rede
+    FROM rede_padronizada
+
+    UNION
+
+    SELECT
+        MD5('DESCONHECIDO') AS sk_rede,
+        'DESCONHECIDO' AS nome_rede,
+        CAST(NULL AS INTEGER) AS id_rede
 )
 
 SELECT
     sk_rede,
     nome_rede,
     id_rede,
-    CONCAT(CAST(id_rede AS VARCHAR), ' - ', nome_rede) AS id_nome_rede
+    CASE
+        WHEN id_rede IS NOT NULL THEN CONCAT(CAST(id_rede AS VARCHAR), ' - ', nome_rede)
+        ELSE nome_rede
+    END AS id_nome_rede
 FROM dim_rede
-ORDER BY id_rede
+ORDER BY id_rede NULLS LAST
