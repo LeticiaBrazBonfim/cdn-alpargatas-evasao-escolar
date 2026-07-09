@@ -47,10 +47,10 @@ models:
 
   - name: dim_rede
     description: |
-      Dimensão de Rede de Ensino. Snapshot estático (Type 1).
-      Fonte: Dados do IDEB (INEP) - coluna REDE.
+      Dimensão de Rede de Ensino (Conformed Dimension). Snapshot estático (Type 1).
+      Fonte: stg_ideb (coluna REDE) e stg_taxa_distorcao (coluna NO_DEPENDENCIA) — INEP.
       Granularidade: 1 linha por rede.
-      Redes: ESTADUAL (id=2), MUNICIPAL (id=4), FEDERAL (id=6). PÚBLICA removida (é agregado de Estadual + Municipal).
+      Redes: ESTADUAL (id=2), MUNICIPAL (id=4), FEDERAL (id=6), PRIVADA (id=8), TOTAL (agregado). DESCONHECIDO (fallback p/ chaves órfãs).
     columns:
       - name: sk_rede
         description: "Surrogate Key (chave substituta) imutável: hash MD5 de nome_rede. Usada para JOINs em fatos."
@@ -59,16 +59,15 @@ models:
           - not_null
 
       - name: id_rede
-        description: "Chave Natural: código arbitrário da rede (2=ESTADUAL, 4=MUNICIPAL, 6=FEDERAL)."
+        description: "Chave Natural: código arbitrário da rede (2=ESTADUAL, 4=MUNICIPAL, 6=FEDERAL, 8=PRIVADA). NULL para TOTAL e DESCONHECIDO."
         tests:
           - unique
-          - not_null
 
       - name: id_nome_rede
-        description: "Descrição composta: id_rede + ' - ' + rede (formato: '2 - ESTADUAL', '4 - MUNICIPAL', '6 - FEDERAL')."
+        description: "Descrição composta: id_rede + ' - ' + rede. Redes sem id (TOTAL, DESCONHECIDO) exibem apenas o nome."
 
       - name: nome_rede
-        description: "Nome amigável da rede de ensino em maiúsculas (REDE ESTADUAL, REDE MUNICIPAL, REDE FEDERAL)."
+        description: "Nome amigável da rede de ensino em maiúsculas. Valores: ESTADUAL, MUNICIPAL, FEDERAL, PRIVADA, TOTAL, DESCONHECIDO."
 
   - name: fato_projetos_ia
     description: |
@@ -176,11 +175,11 @@ models:
           Preços: correntes.
           Calculado pelo IBGE com base na população do Censo/estimativas.
 
-  - name: fato_taxa_distorcao
+  - name: fato_taxa_distorcao_municipio
     description: |
-      Fato: Taxa de Distorção Idade-Série na Educação Básica.
-      Fonte: Instituto Nacional de Estudos e Pesquisas Educacionais (INEP).
-      Granularidade: 1 linha por município + ano + categoria_localidade + dependencia_administrativa.
+      Fato: Taxa de Distorção Idade-Série — Agregado Municipal (Grão Macro).
+      Fonte: INEP (Censo Escolar). Apenas linhas com categoria=TOTAL e dependencia=TOTAL.
+      Granularidade: 1 linha por município + ano.
 
       Taxa de Distorção: percentual de alunos com idade superior à recomendada para a série.
       Valores esperados: entre 0 e 100 (percentual).
@@ -199,23 +198,57 @@ models:
         tests:
           - not_null
 
-      - name: categoria_localidade
-        description: "Categoria da localidade: Urbana ou Rural."
-
-      - name: dependencia_administrativa
-        description: "Dependência administrativa da escola: Federal, Estadual, Municipal ou Privada."
-
       - name: taxa_distorcao_ensino_fundamental
         description: |
           Taxa de distorção idade-série no Ensino Fundamental.
           Unidade: percentual (0-100).
-          Valores nulos indicam ausência de dados.
 
       - name: taxa_distorcao_ensino_medio
         description: |
           Taxa de distorção idade-série no Ensino Médio.
           Unidade: percentual (0-100).
-          Valores nulos indicam ausência de dados.
+
+  - name: fato_taxa_distorcao_rede_categoria
+    description: |
+      Fato: Taxa de Distorção Idade-Série — por Rede e Categoria (Grão Micro).
+      Fonte: INEP (Censo Escolar). Exclui o agregado municipal puro (categoria=TOTAL e dependencia=TOTAL).
+      Granularidade: 1 linha por município + ano + categoria_localidade + rede (sk_rede).
+    columns:
+      - name: sk_localidade
+        description: "Foreign Key para dim_localidade."
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_localidade')
+                field: sk_localidade
+
+      - name: sk_rede
+        description: "Foreign Key para dim_rede (Conformed Dimension). Chave substituta MD5 do nome da rede de ensino."
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_rede')
+                field: sk_rede
+
+      - name: ano
+        description: "Ano do Censo Escolar."
+        tests:
+          - not_null
+
+      - name: categoria_localidade
+        description: "Categoria da localidade: Urbana, Rural ou TOTAL (quando rede é específica)."
+
+      - name: taxa_distorcao_ensino_fundamental
+        description: |
+          Taxa de distorção idade-série no Ensino Fundamental.
+          Unidade: percentual (0-100).
+
+      - name: taxa_distorcao_ensino_medio
+        description: |
+          Taxa de distorção idade-série no Ensino Médio.
+          Unidade: percentual (0-100).
 
   - name: fato_ideb
     description: |

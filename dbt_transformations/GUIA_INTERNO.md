@@ -24,10 +24,10 @@ raw.ideb_municipios, raw.taxa_distorcao
     ↓  dbt run
 stg_dtb, stg_pib_municipios, stg_projetos_ia, stg_ideb, stg_taxa_distorcao  (views, 1:1)
     ↓  dbt run
-dim_localidade → fato_ideb, fato_projetos_ia, fato_socioeconomica, fato_taxa_distorcao
+dim_localidade → fato_ideb, fato_projetos_ia, fato_socioeconomica, fato_taxa_distorcao_municipio, fato_taxa_distorcao_rede_categoria
 dim_rede
     ↓  dbt test
-41 testes de integridade
+45 testes de integridade
     ↓  Metabase
 Dashboards analíticos
 ```
@@ -206,7 +206,7 @@ dbt docs serve               # http://localhost:8000
 
 ---
 
-### Core (6 tabelas — modelo dimensional Kimball)
+### Core (7 tabelas — modelo dimensional Kimball)
 
 #### `dim_localidade`
 - **Tipo**: Dimensão (Type 1)
@@ -218,13 +218,13 @@ dbt docs serve               # http://localhost:8000
 - **Linhas**: 5.571
 
 #### `dim_rede`
-- **Tipo**: Dimensão (Type 1)
+- **Tipo**: Dimensão (Type 1) — Conformed Dimension
 - **SK**: `MD5(nome_rede)` — hash imutável
-- **Granularidade**: 1 linha por rede (3 registros)
-- **Fonte**: `stg_ideb` com `SELECT DISTINCT`, filtro IN ('ESTADUAL', 'MUNICIPAL', 'FEDERAL')
-- **Atributos**: nome_rede, id_rede (2, 4, 6), id_nome_rede (CONCAT)
-- **Testes**: `unique` + `not_null` em sk_rede e id_rede
-- **Linhas**: 3
+- **Granularidade**: 1 linha por rede (6 registros)
+- **Fonte**: `stg_ideb.nome_rede` UNION `stg_taxa_distorcao.dependencia_administrativa`; whitelist: ESTADUAL, MUNICIPAL, FEDERAL, PRIVADA, TOTAL; fallback DESCONHECIDO
+- **Atributos**: nome_rede, id_rede (2, 4, 6, 8), id_nome_rede (CASE WHEN id_rede NOT NULL THEN CONCAT ELSE nome_rede)
+- **Testes**: `unique` em sk_rede e id_rede (id_rede é NULL para TOTAL e DESCONHECIDO)
+- **Linhas**: 6
 
 #### `fato_ideb`
 - **Granularidade**: município + rede + ano
@@ -257,24 +257,32 @@ dbt docs serve               # http://localhost:8000
 - **Testes**: `not_null` em sk_localidade, ano; `relationships` → dim_localidade
 - **Linhas**: 66.825
 
-#### `fato_taxa_distorcao`
-- **Granularidade**: município + ano + categoria_localidade + dependencia_administrativa
-- **Fonte**: `stg_taxa_distorcao`
-- **JOIN**: `id_municipio` (numérico)
+#### `fato_taxa_distorcao_municipio`
+- **Granularidade**: município + ano (grão macro — agregado municipal)
+- **Fonte**: `stg_taxa_distorcao` WHERE `categoria_localidade = 'TOTAL' AND dependencia_administrativa = 'TOTAL'`
+- **JOIN**: `id_municipio` → `dim_localidade`
 - **Testes**: `not_null` em sk_localidade, ano; `relationships` → dim_localidade
-- **Linhas**: 327.934
+- **Linhas**: 27.850
+
+#### `fato_taxa_distorcao_rede_categoria`
+- **Granularidade**: município + ano + categoria_localidade + rede (grão micro — desagregado)
+- **Fonte**: `stg_taxa_distorcao` WHERE `categoria_localidade != 'TOTAL' OR dependencia_administrativa != 'TOTAL'`
+- **JOIN**: `id_municipio` → `dim_localidade`; `dependencia_administrativa` → `dim_rede.nome_rede`
+  - `COALESCE(sk_rede, MD5('DESCONHECIDO'))` p/ preservar integridade referencial
+- **Testes**: `not_null` em sk_localidade, sk_rede, ano; `relationships` → dim_localidade e dim_rede
+- **Linhas**: 300.084
 
 ---
 
 ## Testes e Validação
 
-### 41 testes distribuídos:
+### 45 testes distribuídos:
 
 | Tipo | Qtd | O que testa |
 |------|-----|-------------|
-| `not_null` | 25 | Colunas obrigatórias em staging + dimensões + fatos |
+| `not_null` | 27 | Colunas obrigatórias em staging + dimensões + fatos |
 | `unique` | 5 | SKs (sk_localidade, sk_rede) e NKs (id_municipio, id_rede) |
-| `relationships` | 8 | FKs nos fatos → dimensões; FKs staging → stg_dtb |
+| `relationships` | 10 | FKs nos fatos → dimensões; FKs staging → stg_dtb |
 | Singulares (SQL) | 3 | Chaves compostas: (id_municipio, ano) no PIB; (id_municipio, nome_rede) no IDEB; (4 colunas) na taxa_distorcao |
 
 ### Testes por modelo:
@@ -296,7 +304,8 @@ dbt docs serve               # http://localhost:8000
 | fato_ideb | sk_localidade, sk_rede, ano | — | → dim_localidade, dim_rede |
 | fato_projetos_ia | sk_localidade, ano, quantidade_projetos, quantidade_beneficiados | — | → dim_localidade |
 | fato_socioeconomica | sk_localidade, ano | — | → dim_localidade |
-| fato_taxa_distorcao | sk_localidade, ano | — | → dim_localidade |
+| fato_taxa_distorcao_municipio | sk_localidade, ano | — | → dim_localidade |
+| fato_taxa_distorcao_rede_categoria | sk_localidade, sk_rede, ano | — | → dim_localidade, dim_rede |
 
 ### Diagnóstico de falhas
 
@@ -342,9 +351,14 @@ ALTER TABLE dev.fato_projetos_ia ADD CONSTRAINT fk_fato_projetos_ia_dim_localida
 ALTER TABLE dev.fato_socioeconomica ADD CONSTRAINT pk_fato_socioeconomica PRIMARY KEY (sk_localidade, ano);
 ALTER TABLE dev.fato_socioeconomica ADD CONSTRAINT fk_fato_socioeconomica_dim_localidade FOREIGN KEY (sk_localidade) REFERENCES dev.dim_localidade(sk_localidade);
 
--- FATO_TAXA_DISTORCAO
-ALTER TABLE dev.fato_taxa_distorcao ADD CONSTRAINT pk_fato_taxa_distorcao PRIMARY KEY (sk_localidade, ano, categoria_localidade, dependencia_administrativa);
-ALTER TABLE dev.fato_taxa_distorcao ADD CONSTRAINT fk_fato_taxa_distorcao_dim_localidade FOREIGN KEY (sk_localidade) REFERENCES dev.dim_localidade(sk_localidade);
+-- FATO_TAXA_DISTORCAO_MUNICIPIO
+ALTER TABLE dev.fato_taxa_distorcao_municipio ADD CONSTRAINT pk_fato_taxa_distorcao_municipio PRIMARY KEY (sk_localidade, ano);
+ALTER TABLE dev.fato_taxa_distorcao_municipio ADD CONSTRAINT fk_fato_taxa_distorcao_municipio_dim_localidade FOREIGN KEY (sk_localidade) REFERENCES dev.dim_localidade(sk_localidade);
+
+-- FATO_TAXA_DISTORCAO_REDE_CATEGORIA
+ALTER TABLE dev.fato_taxa_distorcao_rede_categoria ADD CONSTRAINT pk_fato_taxa_distorcao_rede_categoria PRIMARY KEY (sk_localidade, sk_rede, ano, categoria_localidade);
+ALTER TABLE dev.fato_taxa_distorcao_rede_categoria ADD CONSTRAINT fk_fato_taxa_distorcao_rede_categoria_dim_localidade FOREIGN KEY (sk_localidade) REFERENCES dev.dim_localidade(sk_localidade);
+ALTER TABLE dev.fato_taxa_distorcao_rede_categoria ADD CONSTRAINT fk_fato_taxa_distorcao_rede_categoria_dim_rede FOREIGN KEY (sk_rede) REFERENCES dev.dim_rede(sk_rede);
 ```
 
 ---
