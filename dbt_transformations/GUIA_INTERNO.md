@@ -17,16 +17,21 @@ Pipeline ELT com 3 camadas:
 
 ```
 data/raw/*.parquet
+
 ↓  load_raw_to_postgres.py (DuckDB → Neon)
 raw.dtb_municipios, raw.pib_municipios, raw.projetos_ia,
 raw.ideb_municipios, raw.taxa_distorcao
+
 ↓  dbt run
 stg_dtb, stg_pib_municipios, stg_projetos_ia, stg_ideb, stg_taxa_distorcao  (views, 1:1)
+
 ↓  dbt run
 dim_localidade → fato_ideb, fato_projetos_ia, fato_socioeconomica, fato_taxa_distorcao_municipio, fato_taxa_distorcao_rede_categoria
 dim_rede
+
 ↓  dbt test
 46 testes de integridade
+
 ↓  Metabase
 Dashboards analíticos
 ```

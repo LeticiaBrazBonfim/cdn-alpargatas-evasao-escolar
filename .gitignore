@@ -61,3 +61,7 @@ perf_info.json
 
 .DS_Store
 Thumbs.db
+.aider*
+
+# INSTRUÇÕES PARA AGENTES DE IA
+AGENTS.md
