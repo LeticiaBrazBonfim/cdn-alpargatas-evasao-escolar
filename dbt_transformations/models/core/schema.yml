@@ -38,6 +38,8 @@ models:
 
       - name: id_regiao_geografica_imediata
         description: "Código da Região Geográfica Imediata (IBGE)."
+        tests:
+          - not_null
 
       - name: id_nome_regiao_geografica_imediata
         description: "Descrição composta: id e nome da Região Geográfica Imediata."

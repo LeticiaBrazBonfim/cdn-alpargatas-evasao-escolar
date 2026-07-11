@@ -12,7 +12,7 @@ dim_rede AS (
 taxa_distorcao AS (
     SELECT * FROM {{ ref('stg_taxa_distorcao') }}
     WHERE categoria_localidade != 'TOTAL'
-       OR dependencia_administrativa != 'TOTAL'
+       AND dependencia_administrativa != 'TOTAL'
 ),
 
 fato AS (

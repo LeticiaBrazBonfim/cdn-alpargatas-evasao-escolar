@@ -7,8 +7,7 @@
 4. [Comandos de Execução](#comandos-de-execução)
 5. [Modelos Detalhados](#modelos-detalhados)
 6. [Testes e Validação](#testes-e-validação)
-7. [DDL Constraints (Opcional)](#ddl-constraints)
-8. [Troubleshooting](#troubleshooting)
+7. [Troubleshooting](#troubleshooting)
 
 ---
 
@@ -18,17 +17,17 @@ Pipeline ELT com 3 camadas:
 
 ```
 data/raw/*.parquet
-    ↓  load_raw_to_postgres.py (DuckDB → Neon)
+↓  load_raw_to_postgres.py (DuckDB → Neon)
 raw.dtb_municipios, raw.pib_municipios, raw.projetos_ia,
 raw.ideb_municipios, raw.taxa_distorcao
-    ↓  dbt run
+↓  dbt run
 stg_dtb, stg_pib_municipios, stg_projetos_ia, stg_ideb, stg_taxa_distorcao  (views, 1:1)
-    ↓  dbt run
+↓  dbt run
 dim_localidade → fato_ideb, fato_projetos_ia, fato_socioeconomica, fato_taxa_distorcao_municipio, fato_taxa_distorcao_rede_categoria
 dim_rede
-    ↓  dbt test
-45 testes de integridade
-    ↓  Metabase
+↓  dbt test
+46 testes de integridade
+↓  Metabase
 Dashboards analíticos
 ```
 
@@ -120,7 +119,7 @@ dbt parse --target dev
 ### dbt run (executar transformações)
 
 ```bash
-# Completo (todos os modelos)
+## Completo (todos os modelos)
 dbt run --target dev
 
 # Modelo específico
@@ -139,7 +138,7 @@ dbt run --select tag:core --target dev
 ### dbt test (validar integridade)
 
 ```bash
-# Completo (41 testes)
+# Completo (46 testes)
 dbt test --target dev
 
 # Modelo específico
@@ -156,7 +155,7 @@ dbt test --select test_type:singular --target dev
 
 ```bash
 dbt docs generate --target dev
-dbt docs serve               # http://localhost:8000
+dbt docs serve               # http://localhost:8080
 ```
 
 ---
@@ -234,7 +233,7 @@ dbt docs serve               # http://localhost:8000
   - `/ 100.0` nas taxas de aprovação
   - `ideb_projecao` apenas para anos 2007-2021 (CAST NULL para demais)
 - **Filtro**: WHERE com 13 condições OR metric IS NOT NULL (elimina linhas totalmente vazias)
-- **JOINs**: dim_rede (3 linhas) primeiro, dim_localidade (5.571) segundo — otimizado por cardinalidade
+- **JOINs**: dim_rede (6 linhas) primeiro, dim_localidade (5.571) segundo — otimizado por cardinalidade
 - **Testes**: `not_null` em sk_localidade, sk_rede, ano; `relationships` → dim_localidade e dim_rede
 - **Linhas**: 82.726
 
@@ -266,17 +265,17 @@ dbt docs serve               # http://localhost:8000
 
 #### `fato_taxa_distorcao_rede_categoria`
 - **Granularidade**: município + ano + categoria_localidade + rede (grão micro — desagregado)
-- **Fonte**: `stg_taxa_distorcao` WHERE `categoria_localidade != 'TOTAL' OR dependencia_administrativa != 'TOTAL'`
+- **Fonte**: `stg_taxa_distorcao` WHERE `categoria_localidade != 'TOTAL' AND dependencia_administrativa != 'TOTAL'`
 - **JOIN**: `id_municipio` → `dim_localidade`; `dependencia_administrativa` → `dim_rede.nome_rede`
   - `COALESCE(sk_rede, MD5('DESCONHECIDO'))` p/ preservar integridade referencial
 - **Testes**: `not_null` em sk_localidade, sk_rede, ano; `relationships` → dim_localidade e dim_rede
-- **Linhas**: 300.084
+- **Linhas**: 151.146
 
 ---
 
 ## Testes e Validação
 
-### 45 testes distribuídos:
+### 46 testes distribuídos:
 
 | Tipo | Qtd | O que testa |
 |------|-----|-------------|
@@ -300,7 +299,7 @@ dbt docs serve               # http://localhost:8000
 | Modelo | not_null | unique | relationships |
 |--------|----------|--------|---------------|
 | dim_localidade | sk_localidade, id_municipio, id_uf | sk_localidade, id_municipio | — |
-| dim_rede | sk_rede, id_rede | sk_rede, id_rede | — |
+| dim_rede | sk_rede | sk_rede, id_rede | — |
 | fato_ideb | sk_localidade, sk_rede, ano | — | → dim_localidade, dim_rede |
 | fato_projetos_ia | sk_localidade, ano, quantidade_projetos, quantidade_beneficiados | — | → dim_localidade |
 | fato_socioeconomica | sk_localidade, ano | — | → dim_localidade |
@@ -320,46 +319,6 @@ dbt docs serve               # http://localhost:8000
 **`unique_dim_localidade_sk_localidade` FAIL:**
 - Causa: MD5 collision ou DISTINCT mal aplicado
 - Ação: Verificar se há id_municipio duplicado em stg_dtb
-
----
-
-## DDL Constraints
-
-Constraints físicas opcionais (já validadas pelos 41 testes dbt):
-
-```sql
--- Schema: substitua `dev` pelo schema alvo
-
--- DIM_LOCALIDADE
-ALTER TABLE dev.dim_localidade ADD CONSTRAINT pk_dim_localidade PRIMARY KEY (sk_localidade);
-ALTER TABLE dev.dim_localidade ADD CONSTRAINT uk_dim_localidade_id_municipio UNIQUE (id_municipio);
-
--- DIM_REDE
-ALTER TABLE dev.dim_rede ADD CONSTRAINT pk_dim_rede PRIMARY KEY (sk_rede);
-ALTER TABLE dev.dim_rede ADD CONSTRAINT uk_dim_rede_id_rede UNIQUE (id_rede);
-
--- FATO_IDEB
-ALTER TABLE dev.fato_ideb ADD CONSTRAINT pk_fato_ideb PRIMARY KEY (sk_localidade, sk_rede, ano);
-ALTER TABLE dev.fato_ideb ADD CONSTRAINT fk_fato_ideb_dim_localidade FOREIGN KEY (sk_localidade) REFERENCES dev.dim_localidade(sk_localidade);
-ALTER TABLE dev.fato_ideb ADD CONSTRAINT fk_fato_ideb_dim_rede FOREIGN KEY (sk_rede) REFERENCES dev.dim_rede(sk_rede);
-
--- FATO_PROJETOS_IA
-ALTER TABLE dev.fato_projetos_ia ADD CONSTRAINT pk_fato_projetos_ia PRIMARY KEY (sk_localidade, ano);
-ALTER TABLE dev.fato_projetos_ia ADD CONSTRAINT fk_fato_projetos_ia_dim_localidade FOREIGN KEY (sk_localidade) REFERENCES dev.dim_localidade(sk_localidade);
-
--- FATO_SOCIOECONOMICA
-ALTER TABLE dev.fato_socioeconomica ADD CONSTRAINT pk_fato_socioeconomica PRIMARY KEY (sk_localidade, ano);
-ALTER TABLE dev.fato_socioeconomica ADD CONSTRAINT fk_fato_socioeconomica_dim_localidade FOREIGN KEY (sk_localidade) REFERENCES dev.dim_localidade(sk_localidade);
-
--- FATO_TAXA_DISTORCAO_MUNICIPIO
-ALTER TABLE dev.fato_taxa_distorcao_municipio ADD CONSTRAINT pk_fato_taxa_distorcao_municipio PRIMARY KEY (sk_localidade, ano);
-ALTER TABLE dev.fato_taxa_distorcao_municipio ADD CONSTRAINT fk_fato_taxa_distorcao_municipio_dim_localidade FOREIGN KEY (sk_localidade) REFERENCES dev.dim_localidade(sk_localidade);
-
--- FATO_TAXA_DISTORCAO_REDE_CATEGORIA
-ALTER TABLE dev.fato_taxa_distorcao_rede_categoria ADD CONSTRAINT pk_fato_taxa_distorcao_rede_categoria PRIMARY KEY (sk_localidade, sk_rede, ano, categoria_localidade);
-ALTER TABLE dev.fato_taxa_distorcao_rede_categoria ADD CONSTRAINT fk_fato_taxa_distorcao_rede_categoria_dim_localidade FOREIGN KEY (sk_localidade) REFERENCES dev.dim_localidade(sk_localidade);
-ALTER TABLE dev.fato_taxa_distorcao_rede_categoria ADD CONSTRAINT fk_fato_taxa_distorcao_rede_categoria_dim_rede FOREIGN KEY (sk_rede) REFERENCES dev.dim_rede(sk_rede);
-```
 
 ---
 
