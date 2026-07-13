@@ -26,11 +26,11 @@ raw.ideb_municipios, raw.taxa_distorcao
 stg_dtb, stg_pib_municipios, stg_projetos_ia, stg_ideb, stg_taxa_distorcao  (views, 1:1)
 
 ↓  dbt run
+dim_calendario → fato_ideb, fato_projetos_ia, fato_socioeconomica, fato_taxa_distorcao_municipio, fato_taxa_distorcao_rede_categoria
 dim_localidade → fato_ideb, fato_projetos_ia, fato_socioeconomica, fato_taxa_distorcao_municipio, fato_taxa_distorcao_rede_categoria
-dim_rede
-
-↓  dbt test
-46 testes de integridade
+dim_rede → fato_ideb, fato_taxa_distorcao_rede_categoria
+    ↓  dbt test
+54 testes de integridade
 
 ↓  Metabase
 Dashboards analíticos
@@ -210,7 +210,7 @@ dbt docs serve               # http://localhost:8080
 
 ---
 
-### Core (7 tabelas — modelo dimensional Kimball)
+### Core (8 tabelas — modelo dimensional Kimball)
 
 #### `dim_localidade`
 - **Tipo**: Dimensão (Type 1)
@@ -230,6 +230,15 @@ dbt docs serve               # http://localhost:8080
 - **Testes**: `unique` em sk_rede e id_rede (id_rede é NULL para TOTAL e DESCONHECIDO)
 - **Linhas**: 6
 
+#### `dim_calendario`
+- **Tipo**: Dimensão (Type 1)
+- **SK**: `MD5(CAST(ano_referencia AS VARCHAR))` — hash imutável
+- **Granularidade**: 1 linha por ano
+- **Fonte**: CTE recursiva gerando anos de 2000 a 2031
+- **Atributos**: ano_referencia
+- **Testes**: `unique` + `not_null` em sk_calendario; `not_null` em ano_referencia
+- **Linhas**: 32
+
 #### `fato_ideb`
 - **Granularidade**: município + rede + ano
 - **Fonte**: `stg_ideb` (UNPIVOT via Jinja `{% for ano in anos %} UNION ALL`)
@@ -238,8 +247,8 @@ dbt docs serve               # http://localhost:8080
   - `/ 100.0` nas taxas de aprovação
   - `ideb_projecao` apenas para anos 2007-2021 (CAST NULL para demais)
 - **Filtro**: WHERE com 13 condições OR metric IS NOT NULL (elimina linhas totalmente vazias)
-- **JOINs**: dim_rede (6 linhas) primeiro, dim_localidade (5.571) segundo — otimizado por cardinalidade
-- **Testes**: `not_null` em sk_localidade, sk_rede, ano; `relationships` → dim_localidade e dim_rede
+- **JOINs**: dim_rede (6 linhas) primeiro, dim_localidade (5.571) segundo, dim_calendario (32) terceiro — otimizado por cardinalidade
+- **Testes**: `not_null` em sk_localidade, sk_rede, sk_calendario; `relationships` → dim_localidade, dim_rede e dim_calendario
 - **Linhas**: 82.726
 
 #### `fato_projetos_ia`
@@ -250,43 +259,45 @@ dbt docs serve               # http://localhost:8080
   - COALESCE em cada coluna `projetos_N` + soma (6 colunas → 1 métrica)
   - COALESCE em cada coluna `beneficiados_N` + soma (6 colunas → 1 métrica)
 - **Lookup**: CTE `uf_mapping` (VALUES com 27 UFs sigla→nome_completo) resolve sigla_uf → nome_uf para JOIN
-- **JOIN**: `nome_municipio + nome_uf` (duas condições) previne cartesiano entre cidades homônimas
-- **Testes**: `not_null` em sk_localidade, ano, quantidade_projetos, quantidade_beneficiados; `relationships` → dim_localidade
+- **JOIN**: `nome_municipio + nome_uf` (duas condições) previne cartesiano entre cidades homônimas; `ano_competencia` → `dim_calendario.ano_referencia`
+- **Testes**: `not_null` em sk_localidade, sk_calendario, quantidade_projetos, quantidade_beneficiados; `relationships` → dim_localidade e dim_calendario
 - **Linhas**: 100
 
 #### `fato_socioeconomica`
 - **Granularidade**: município + ano
 - **Fonte**: `stg_pib_municipios`
-- **JOIN**: `id_municipio` (numérico)
-- **Testes**: `not_null` em sk_localidade, ano; `relationships` → dim_localidade
+- **JOIN**: `id_municipio` → `dim_localidade`; `ano_competencia` → `dim_calendario.ano_referencia`
+- **Testes**: `not_null` em sk_localidade, sk_calendario; `relationships` → dim_localidade e dim_calendario
 - **Linhas**: 66.825
 
 #### `fato_taxa_distorcao_municipio`
 - **Granularidade**: município + ano (grão macro — agregado municipal)
 - **Fonte**: `stg_taxa_distorcao` WHERE `categoria_localidade = 'TOTAL' AND dependencia_administrativa = 'TOTAL'`
-- **JOIN**: `id_municipio` → `dim_localidade`
-- **Testes**: `not_null` em sk_localidade, ano; `relationships` → dim_localidade
+- **JOIN**: `id_municipio` → `dim_localidade`; `ano_competencia` → `dim_calendario.ano_referencia`
+- **Testes**: `not_null` em sk_localidade, sk_calendario; `relationships` → dim_localidade e dim_calendario
+- **Observação**: TDI armazenada como decimal (0.5 = 50%). A divisão por 100.0 ocorre na staging (`stg_taxa_distorcao`).
 - **Linhas**: 27.850
 
 #### `fato_taxa_distorcao_rede_categoria`
 - **Granularidade**: município + ano + categoria_localidade + rede (grão micro — desagregado)
-- **Fonte**: `stg_taxa_distorcao` WHERE `categoria_localidade != 'TOTAL' AND dependencia_administrativa != 'TOTAL'`
-- **JOIN**: `id_municipio` → `dim_localidade`; `dependencia_administrativa` → `dim_rede.nome_rede`
+- **Fonte**: `stg_taxa_distorcao` WHERE `categoria_localidade != 'TOTAL' OR dependencia_administrativa != 'TOTAL'`
+- **JOIN**: `id_municipio` → `dim_localidade`; `ano_competencia` → `dim_calendario.ano_referencia`; `dependencia_administrativa` → `dim_rede.nome_rede`
   - `COALESCE(sk_rede, MD5('DESCONHECIDO'))` p/ preservar integridade referencial
-- **Testes**: `not_null` em sk_localidade, sk_rede, ano; `relationships` → dim_localidade e dim_rede
+- **Testes**: `not_null` em sk_localidade, sk_rede, sk_calendario; `relationships` → dim_localidade, dim_rede e dim_calendario
+- **Observação**: TDI armazenada como decimal (0.5 = 50%). A divisão por 100.0 ocorre na staging (`stg_taxa_distorcao`).
 - **Linhas**: 151.146
 
 ---
 
 ## Testes e Validação
 
-### 46 testes distribuídos:
+### 54 testes distribuídos:
 
 | Tipo | Qtd | O que testa |
 |------|-----|-------------|
-| `not_null` | 27 | Colunas obrigatórias em staging + dimensões + fatos |
-| `unique` | 5 | SKs (sk_localidade, sk_rede) e NKs (id_municipio, id_rede) |
-| `relationships` | 10 | FKs nos fatos → dimensões; FKs staging → stg_dtb |
+| `not_null` | 30 | Colunas obrigatórias em staging + dimensões + fatos |
+| `unique` | 6 | SKs (sk_localidade, sk_rede, sk_calendario) e NKs (id_municipio, id_rede) |
+| `relationships` | 15 | FKs nos fatos → dimensões; FKs staging → stg_dtb |
 | Singulares (SQL) | 3 | Chaves compostas: (id_municipio, ano) no PIB; (id_municipio, nome_rede) no IDEB; (4 colunas) na taxa_distorcao |
 
 ### Testes por modelo:
@@ -305,11 +316,12 @@ dbt docs serve               # http://localhost:8080
 |--------|----------|--------|---------------|
 | dim_localidade | sk_localidade, id_municipio, id_uf | sk_localidade, id_municipio | — |
 | dim_rede | sk_rede | sk_rede, id_rede | — |
-| fato_ideb | sk_localidade, sk_rede, ano | — | → dim_localidade, dim_rede |
-| fato_projetos_ia | sk_localidade, ano, quantidade_projetos, quantidade_beneficiados | — | → dim_localidade |
-| fato_socioeconomica | sk_localidade, ano | — | → dim_localidade |
-| fato_taxa_distorcao_municipio | sk_localidade, ano | — | → dim_localidade |
-| fato_taxa_distorcao_rede_categoria | sk_localidade, sk_rede, ano | — | → dim_localidade, dim_rede |
+| dim_calendario | sk_calendario, ano_referencia | sk_calendario | — |
+| fato_ideb | sk_localidade, sk_rede, sk_calendario | — | → dim_localidade, dim_rede, dim_calendario |
+| fato_projetos_ia | sk_localidade, sk_calendario, quantidade_projetos, quantidade_beneficiados | — | → dim_localidade, dim_calendario |
+| fato_socioeconomica | sk_localidade, sk_calendario | — | → dim_localidade, dim_calendario |
+| fato_taxa_distorcao_municipio | sk_localidade, sk_calendario | — | → dim_localidade, dim_calendario |
+| fato_taxa_distorcao_rede_categoria | sk_localidade, sk_rede, sk_calendario | — | → dim_localidade, dim_rede, dim_calendario |
 
 ### Diagnóstico de falhas
 

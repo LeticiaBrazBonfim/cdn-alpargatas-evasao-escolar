@@ -1,6 +1,10 @@
 {{ config(materialized='table') }}
 
 WITH
+dim_calendario AS (
+    SELECT * FROM {{ ref('dim_calendario') }}
+),
+
 dim_localidade AS (
     SELECT * FROM {{ ref('dim_localidade') }}
 ),
@@ -11,30 +15,28 @@ pib AS (
 
 fato_socioeconomica AS (
     SELECT
-        -- Chave Estrangeira (Dimensão)
+        -- Chave Estrangeira (Dimensão Localidade)
         d.sk_localidade,
 
-        -- Granularidade
-        p.ano_competencia AS ano,
+        -- Chave Estrangeira (Dimensão Calendário)
+        ca.sk_calendario,
 
-        -- Métricas de Valor Adicionado Bruto (VA) por Setor (conforme IBGE)
+        -- Métricas de Valor Adicionado Bruto (VA)
         p.va_bruto_agropecuaria,
         p.va_bruto_industria,
         p.va_bruto_servicos,
         p.va_bruto_administracao_publica,
         p.va_bruto_total,
 
-        -- Impostos líquidos (diferença entre PIB e VAB total)
+        -- Impostos e PIB
         p.impostos_liquidos,
-
-        -- Produto Interno Bruto Final (PIB = VAB total + Impostos líquidos)
         p.pib_total,
-
-        -- PIB per capita (IBGE calcula com população do Censo/estimativas)
         p.pib_per_capita
     FROM pib p
     INNER JOIN dim_localidade d
         ON p.id_municipio = d.id_municipio
+    INNER JOIN dim_calendario ca
+        ON p.ano_competencia = ca.ano_referencia
 )
 
 SELECT * FROM fato_socioeconomica

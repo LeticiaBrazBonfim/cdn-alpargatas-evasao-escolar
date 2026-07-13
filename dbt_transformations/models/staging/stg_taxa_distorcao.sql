@@ -17,8 +17,8 @@ transformacao AS (
         UPPER(TRIM("NO_DEPENDENCIA")) AS dependencia_administrativa,
         
         -- Higienização de métricas: Tratamento do caractere '--' e conversão para decimal
-        {{ safe_cast_numeric_column('FUN_CAT_0', '--') }} AS taxa_distorcao_ensino_fundamental,
-        {{ safe_cast_numeric_column('MED_CAT_0', '--') }} AS taxa_distorcao_ensino_medio
+        {{ safe_cast_numeric_column('FUN_CAT_0', '--') }} / 100.0 AS taxa_distorcao_ensino_fundamental,
+        {{ safe_cast_numeric_column('MED_CAT_0', '--') }} / 100.0 AS taxa_distorcao_ensino_medio
 
     FROM source
     WHERE "CO_MUNICIPIO" IS NOT NULL

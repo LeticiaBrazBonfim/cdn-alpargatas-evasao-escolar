@@ -71,6 +71,23 @@ models:
       - name: nome_rede
         description: "Nome amigável da rede de ensino em maiúsculas. Valores: ESTADUAL, MUNICIPAL, FEDERAL, PRIVADA, TOTAL, DESCONHECIDO."
 
+  - name: dim_calendario
+    description: |
+      Dimensão Calendário. Snapshot estático (Type 1).
+      Granularidade: 1 linha por ano.
+      Período: 2000 a 2031.
+    columns:
+      - name: sk_calendario
+        description: "Surrogate Key: hash MD5 do ano_referencia."
+        tests:
+          - unique
+          - not_null
+
+      - name: ano_referencia
+        description: "Ano de referência (INT). Usado para joins temporais."
+        tests:
+          - not_null
+
   - name: fato_projetos_ia
     description: |
       Fato: Projetos de Inteligência Artificial Educacional da Alpargatas.
@@ -86,10 +103,14 @@ models:
                 to: ref('dim_localidade')
                 field: sk_localidade
 
-      - name: ano
-        description: "Ano de execução do projeto (ano_competencia)."
+      - name: sk_calendario
+        description: "Foreign Key para dim_calendario."
         tests:
           - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_calendario')
+                field: sk_calendario
 
       - name: quantidade_projetos
         description: "Total de projetos de IA executados no município naquele ano."
@@ -121,10 +142,14 @@ models:
                 to: ref('dim_localidade')
                 field: sk_localidade
 
-      - name: ano
-        description: "Ano de referência da métrica."
+      - name: sk_calendario
+        description: "Foreign Key para dim_calendario."
         tests:
           - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_calendario')
+                field: sk_calendario
 
       - name: va_bruto_agropecuaria
         description: |
@@ -184,7 +209,7 @@ models:
       Granularidade: 1 linha por município + ano.
 
       Taxa de Distorção: percentual de alunos com idade superior à recomendada para a série.
-      Valores esperados: entre 0 e 100 (percentual).
+      Valores esperados: entre 0 e 1 (decimal). Armazenado como decimal (0.5 = 50%).
     columns:
       - name: sk_localidade
         description: "Foreign Key para dim_localidade."
@@ -195,20 +220,24 @@ models:
                 to: ref('dim_localidade')
                 field: sk_localidade
 
-      - name: ano
-        description: "Ano do Censo Escolar."
+      - name: sk_calendario
+        description: "Foreign Key para dim_calendario."
         tests:
           - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_calendario')
+                field: sk_calendario
 
       - name: taxa_distorcao_ensino_fundamental
         description: |
           Taxa de distorção idade-série no Ensino Fundamental.
-          Unidade: percentual (0-100).
+          Unidade: decimal (0-1). Ex: 0.5 = 50%.
 
       - name: taxa_distorcao_ensino_medio
         description: |
           Taxa de distorção idade-série no Ensino Médio.
-          Unidade: percentual (0-100).
+          Unidade: decimal (0-1). Ex: 0.5 = 50%.
 
   - name: fato_taxa_distorcao_rede_categoria
     description: |
@@ -234,10 +263,14 @@ models:
                 to: ref('dim_rede')
                 field: sk_rede
 
-      - name: ano
-        description: "Ano do Censo Escolar."
+      - name: sk_calendario
+        description: "Foreign Key para dim_calendario."
         tests:
           - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_calendario')
+                field: sk_calendario
 
       - name: categoria_localidade
         description: "Categoria da localidade: Urbana, Rural ou TOTAL (quando rede é específica)."
@@ -245,12 +278,12 @@ models:
       - name: taxa_distorcao_ensino_fundamental
         description: |
           Taxa de distorção idade-série no Ensino Fundamental.
-          Unidade: percentual (0-100).
+          Unidade: decimal (0-1). Ex: 0.5 = 50%.
 
       - name: taxa_distorcao_ensino_medio
         description: |
           Taxa de distorção idade-série no Ensino Médio.
-          Unidade: percentual (0-100).
+          Unidade: decimal (0-1). Ex: 0.5 = 50%.
 
   - name: fato_ideb
     description: |
@@ -281,10 +314,14 @@ models:
                 to: ref('dim_rede')
                 field: sk_rede
 
-      - name: ano
-        description: "Ano de referência do IDEB (bienal: 2005, 2007, ..., 2023)."
+      - name: sk_calendario
+        description: "Foreign Key para dim_calendario."
         tests:
           - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_calendario')
+                field: sk_calendario
 
       - name: ideb_observado
         description: |

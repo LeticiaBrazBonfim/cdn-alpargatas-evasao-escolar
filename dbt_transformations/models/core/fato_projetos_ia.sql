@@ -2,6 +2,10 @@
 
 WITH
 
+dim_calendario AS (
+    SELECT * FROM {{ ref('dim_calendario') }}
+),
+
 dim_localidade AS (
     SELECT * FROM {{ ref('dim_localidade') }}
 ),
@@ -62,10 +66,12 @@ com_uf AS (
 
 SELECT
     d.sk_localidade,
-    c.ano_competencia AS ano,
+    ca.sk_calendario,
     c.quantidade_projetos,
     c.quantidade_beneficiados
 FROM com_uf c
 INNER JOIN dim_localidade d
     ON c.nome_municipio = d.nome_municipio
     AND c.nome_uf = d.nome_uf
+INNER JOIN dim_calendario ca
+    ON c.ano_competencia = ca.ano_referencia

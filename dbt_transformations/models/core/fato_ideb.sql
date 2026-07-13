@@ -8,6 +8,10 @@ dim_localidade AS (
     SELECT * FROM {{ ref('dim_localidade') }}
 ),
 
+dim_calendario AS (
+    SELECT * FROM {{ ref('dim_calendario') }}
+),
+
 dim_rede AS (
     SELECT * FROM {{ ref('dim_rede') }}
 ),
@@ -47,7 +51,7 @@ fato_ideb AS (
     SELECT
         d.sk_localidade,
         r.sk_rede,
-        u.ano,
+        c.sk_calendario,
         u.ideb_observado,
         u.ideb_projecao,
         u.nota_media_saeb,
@@ -65,6 +69,8 @@ fato_ideb AS (
         ON u.nome_rede = r.nome_rede
     INNER JOIN dim_localidade d
         ON u.id_municipio = d.id_municipio
+    INNER JOIN dim_calendario c
+        ON u.ano = c.ano_referencia
     WHERE u.ideb_observado IS NOT NULL
        OR u.ideb_projecao IS NOT NULL
        OR u.nota_media_saeb IS NOT NULL
