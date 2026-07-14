@@ -26,5 +26,7 @@ models:
   dbt_transformations:
     staging:
       +materialized: view
+      +schema: stg
     core:
       +materialized: table
+      +schema: dw

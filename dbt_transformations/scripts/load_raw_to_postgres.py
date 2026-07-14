@@ -170,7 +170,7 @@ def main():
     profiles_file = profile_path(args.profiles_dir)
     profile_name = project_profile_name(project_dir)
     config = target_config(profile_name, profiles_file, args.target)
-    schema = args.schema or config.get("schema", "public")
+    schema = "raw"
 
     parquet_files = sorted(data_dir.glob("*.parquet"))
     if not parquet_files:

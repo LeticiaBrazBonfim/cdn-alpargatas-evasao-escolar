@@ -32,6 +32,29 @@ clean AS (
     WHERE "CO_MUNICIPIO" IS NOT NULL
       AND "REDE" IS NOT NULL
       AND TRIM("REDE") != ''
+),
+
+filtered AS (
+    SELECT * FROM clean
+    {% for ano in anos %}
+    {% if loop.first %}WHERE ({% endif %}
+    (vl_observado_{{ ano }} IS NOT NULL
+        OR vl_nota_media_{{ ano }} IS NOT NULL
+        OR vl_nota_matematica_{{ ano }} IS NOT NULL
+        OR vl_nota_portugues_{{ ano }} IS NOT NULL
+        OR vl_aprovacao_{{ ano }}_si IS NOT NULL
+        OR vl_aprovacao_{{ ano }}_si_4 IS NOT NULL
+        OR vl_aprovacao_{{ ano }}_1 IS NOT NULL
+        OR vl_aprovacao_{{ ano }}_2 IS NOT NULL
+        OR vl_aprovacao_{{ ano }}_3 IS NOT NULL
+        OR vl_aprovacao_{{ ano }}_4 IS NOT NULL
+        OR vl_indicador_rend_{{ ano }} IS NOT NULL
+        {% if ano >= 2007 and ano <= 2021 %}
+        OR vl_projecao_{{ ano }} IS NOT NULL
+        {% endif %})
+    {% if not loop.last %}OR{% endif %}
+    {% if loop.last %}){% endif %}
+    {% endfor %}
 )
 
-SELECT * FROM clean
+SELECT * FROM filtered

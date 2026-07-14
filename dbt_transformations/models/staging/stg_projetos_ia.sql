@@ -26,3 +26,6 @@ clean AS (
 )
 
 SELECT * FROM clean
+WHERE COALESCE(projetos_1, 0) + COALESCE(projetos_2, 0)
+      + COALESCE(projetos_3, 0) + COALESCE(projetos_4, 0)
+      + COALESCE(projetos_5, 0) + COALESCE(projetos_6, 0) > 0

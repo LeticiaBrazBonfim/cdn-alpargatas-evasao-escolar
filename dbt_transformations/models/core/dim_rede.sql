@@ -8,7 +8,13 @@ WITH staging_rede AS (
     UNION
 
     SELECT UPPER(TRIM(dependencia_administrativa))
-    FROM {{ ref('stg_taxa_distorcao') }}
+    FROM {{ ref('stg_taxa_distorcao_municipio') }}
+    WHERE dependencia_administrativa IS NOT NULL
+
+    UNION
+
+    SELECT UPPER(TRIM(dependencia_administrativa))
+    FROM {{ ref('stg_taxa_distorcao_rede_categoria') }}
     WHERE dependencia_administrativa IS NOT NULL
 ),
 

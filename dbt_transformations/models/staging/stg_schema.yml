@@ -10,8 +10,8 @@ models:
           - unique
           - not_null
 
-  - name: stg_pib_municipios
-    description: "Produto Interno Bruto municipal (IBGE) - staging com casting e validação."
+  - name: stg_socioeconomica
+    description: "Indicadores socioeconômicos municipais (PIB/VAB - IBGE) — staging com casting direto. Substitui stg_pib_municipios."
     columns:
       - name: id_municipio
         description: "Código numérico oficial do município."
@@ -28,8 +28,8 @@ models:
       - name: pib_per_capita
         description: "Produto Interno Bruto per capita (R$ 1,00)."
 
-  - name: stg_taxa_distorcao
-    description: "Taxa de distorção idade-série por município (INEP) - staging com safe_cast."
+  - name: stg_taxa_distorcao_municipio
+    description: "Taxa de distorção idade-série — grão municipio (categoria=TOTAL, dependencia=TOTAL). INEP."
     columns:
       - name: id_municipio
         description: "Código numérico oficial do município."
@@ -44,16 +44,48 @@ models:
         tests:
           - not_null
       - name: categoria_localidade
-        description: "Categoria da localidade: Urbana ou Rural."
+        description: "Categoria da localidade: TOTAL (agregado municipal)."
         tests:
           - not_null
       - name: dependencia_administrativa
-        description: "Dependência administrativa: Federal, Estadual, Municipal ou Privada."
+        description: "Dependência administrativa: TOTAL (agregado municipal)."
         tests:
           - not_null
+      - name: taxa_distorcao_ensino_fundamental
+        description: "Taxa de distorção idade-série — Ensino Fundamental (decimal 0-1)."
+      - name: taxa_distorcao_ensino_medio
+        description: "Taxa de distorção idade-série — Ensino Médio (decimal 0-1)."
+
+  - name: stg_taxa_distorcao_rede_categoria
+    description: "Taxa de distorção idade-série — grão desagregado por rede e categoria. INEP."
+    columns:
+      - name: id_municipio
+        description: "Código numérico oficial do município."
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('stg_dtb')
+                field: id_municipio
+      - name: ano_competencia
+        description: "Ano do Censo Escolar."
+        tests:
+          - not_null
+      - name: categoria_localidade
+        description: "Categoria da localidade: Urbana, Rural ou TOTAL."
+        tests:
+          - not_null
+      - name: dependencia_administrativa
+        description: "Dependência administrativa: Federal, Estadual, Municipal, Privada ou TOTAL."
+        tests:
+          - not_null
+      - name: taxa_distorcao_ensino_fundamental
+        description: "Taxa de distorção idade-série — Ensino Fundamental (decimal 0-1)."
+      - name: taxa_distorcao_ensino_medio
+        description: "Taxa de distorção idade-série — Ensino Médio (decimal 0-1)."
 
   - name: stg_projetos_ia
-    description: "Projetos de IA educacional Alpargatas - staging 1:1. A agregação das 6 colunas de projetos e 6 de beneficiados é feita na camada core (fato_projetos_ia)."
+    description: "Projetos de IA educacional Alpargatas — staging 1:1. Filtra linhas com soma de projetos = 0."
     columns:
       - name: ano_competencia
         description: "Ano de execução do projeto."
@@ -65,7 +97,7 @@ models:
         description: "Nome do município em maiúsculas."
 
   - name: stg_ideb
-    description: "Índice de Desenvolvimento da Educação Básica (INEP) - staging wide format 1:1. O UNPIVOT para formato longo é realizado na camada core (fato_ideb)."
+    description: "Índice de Desenvolvimento da Educação Básica (INEP) — staging wide format 1:1. O UNPIVOT para formato longo é realizado na camada core (fato_ideb)."
     columns:
       - name: id_municipio
         description: "Código numérico oficial do município."

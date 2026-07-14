@@ -7,7 +7,6 @@ pib_limpo AS (
         CAST("Código do Município" AS INTEGER) AS id_municipio,
         CAST("Ano" AS INTEGER) AS ano_competencia,
 
-        -- Colunas de Valor Adicionado Bruto (VA)
         CAST("Valor adicionado bruto da Agropecuária, 
 a preços correntes
 (R$ 1.000)" AS NUMERIC) AS va_bruto_agropecuaria,
@@ -29,7 +28,6 @@ a preços correntes
 a preços correntes
 (R$ 1.000)" AS NUMERIC) AS va_bruto_total,
 
-        -- Colunas de Impostos e PIB Final
         CAST("Impostos, líquidos de subsídios, sobre produtos, 
 a preços correntes
 (R$ 1.000)" AS NUMERIC) AS impostos_liquidos,
@@ -48,3 +46,5 @@ a preços correntes
 )
 
 SELECT * FROM pib_limpo
+WHERE COALESCE(pib_total, 0) != 0
+   OR COALESCE(pib_per_capita, 0) != 0

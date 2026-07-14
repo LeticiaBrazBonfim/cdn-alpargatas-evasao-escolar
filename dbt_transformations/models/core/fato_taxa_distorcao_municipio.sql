@@ -10,9 +10,7 @@ dim_calendario AS (
 ),
 
 taxa_distorcao AS (
-    SELECT * FROM {{ ref('stg_taxa_distorcao') }}
-    WHERE categoria_localidade = 'TOTAL'
-      AND dependencia_administrativa = 'TOTAL'
+    SELECT * FROM {{ ref('stg_taxa_distorcao_municipio') }}
 ),
 
 fato AS (
