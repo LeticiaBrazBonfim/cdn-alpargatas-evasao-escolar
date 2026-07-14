@@ -35,13 +35,13 @@ data/raw/*.parquet
 ┌────────────────────────────────────────────────────────┐
 │                    Neon (PostgreSQL)                   │
 │                                                        │
-│  [schema: raw]       (Tabelas brutas em formato TEXT)  │
+│  [schema: dev_raw]       (Tabelas brutas em formato TEXT)
 │    │                                                   │
 │    ▼ dbt run         (Transformação e Casting)         │
-│  [schema: staging]   (Views espelhadas 1:1)            │
+│  [schema: dev_stg]      (Views espelhadas 1:1)         │
 │    │                                                   │
 │    ▼ dbt run         (Materialização Física)           │
-│  [schema: core]      (Tabelas do Modelo Dimensional)   │
+│  [schema: dev_core]     (Tabelas do Modelo Dimensional)│
 └──────────────────────────┬─────────────────────────────┘
                            │
                            ▼ Consultas SQL via conexão direta
@@ -53,11 +53,11 @@ data/raw/*.parquet
 
 | Modelo | Fonte | Função |
 |--------|-------|--------|
-| `stg_dtb` | raw.dtb_municipios | Limpeza + UPPER/TRIM de nomes |
-| `stg_pib_municipios` | raw.pib_municipios | CAST NUMERIC direto (dados já em formato US no Neon) |
-| `stg_projetos_ia` | raw.projetos_ia | 1:1, 12 colunas (projetos_1..6 + beneficiados_1..6) |
-| `stg_ideb` | raw.ideb_municipios | Wide format, Jinja gera 100+ colunas |
-| `stg_taxa_distorcao` | raw.taxa_distorcao | Safe_cast de taxas (trata '--' como NULL), divisão por 100.0 |
+| `dbt_municipios` | dev_raw.dbt_municipios | Limpeza + UPPER/TRIM de nomes |
+| `pib_municipios` | dev_raw.pib_municipios | CAST NUMERIC direto (dados já em formato US no Neon) |
+| `projetos_ia` | dev_raw.projetos_ia | 1:1, 12 colunas (projetos_1..6 + beneficiados_1..6) |
+| `ideb_municipios` | dev_raw.ideb_municipios | Wide format, Jinja gera 100+ colunas |
+| `taxa_distorcao` | dev_raw.taxa_distorcao | Safe_cast de taxas (trata '--' como NULL), divisão por 100.0 |
 
 ### Core (3 dimensões + 5 fatos, `materialized='table'`)
 
@@ -70,9 +70,9 @@ data/raw/*.parquet
 
 | Fato | Granularidade | Linhas | Métricas |
 |------|---------------|--------|----------|
-| `fato_ideb` | município + rede + ano | 82.726 | IDEB observado/projeção, notas SAEB, taxas aprovação, indicador rendimento |
-| `fato_projetos_ia` | município + ano | 91 | Quantidade projetos, quantidade beneficiados |
-| `fato_socioeconomica` | município + ano | 66.825 | PIB, VAB por setor, impostos líquidos |
+| `fato_ideb_municipios` | município + rede + ano | 82.726 | IDEB observado/projeção, notas SAEB, taxas aprovação, indicador rendimento |
+| `fato_projetos_ia` | município + ano | 90 | Quantidade projetos, quantidade beneficiados |
+| `fato_pib_municipios` | município + ano | 66.825 | PIB, VAB por setor, impostos líquidos |
 | `fato_taxa_distorcao_municipio` | município + ano | 27.848 | Taxa distorção ensino fundamental/médio |
 | `fato_taxa_distorcao_rede_categoria` | município + ano + categoria + rede | 292.318 | Taxa distorção ensino fundamental/médio |
 
