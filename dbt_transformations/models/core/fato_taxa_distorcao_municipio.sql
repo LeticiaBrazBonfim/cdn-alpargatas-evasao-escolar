@@ -26,6 +26,8 @@ fato AS (
         ON t.id_municipio = d.id_municipio
     INNER JOIN dim_calendario c
         ON t.ano_competencia = c.ano_referencia
+    WHERE COALESCE(t.taxa_distorcao_ensino_fundamental, 0) != 0
+       OR COALESCE(t.taxa_distorcao_ensino_medio, 0) != 0
 )
 
 SELECT * FROM fato

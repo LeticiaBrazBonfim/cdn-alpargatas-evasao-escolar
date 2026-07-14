@@ -258,10 +258,11 @@ dbt docs serve               # http://localhost:8080
   - CASE WHEN para corrigir nomes: 'CAMPINA GRANDE- MIXING CENTER' → 'CAMPINA GRANDE', 'QUEIMADAS *' → 'QUEIMADAS'
   - COALESCE em cada coluna `projetos_N` + soma (6 colunas → 1 métrica)
   - COALESCE em cada coluna `beneficiados_N` + soma (6 colunas → 1 métrica)
+- **Filtro**: WHERE `COALESCE(quantidade_projetos, 0) != 0 OR COALESCE(quantidade_beneficiados, 0) != 0` — elimina 9 linhas com todas as métricas zeradas
 - **Lookup**: CTE `uf_mapping` (VALUES com 27 UFs sigla→nome_completo) resolve sigla_uf → nome_uf para JOIN
 - **JOIN**: `nome_municipio + nome_uf` (duas condições) previne cartesiano entre cidades homônimas; `ano_competencia` → `dim_calendario.ano_referencia`
 - **Testes**: `not_null` em sk_localidade, sk_calendario, quantidade_projetos, quantidade_beneficiados; `relationships` → dim_localidade e dim_calendario
-- **Linhas**: 100
+- **Linhas**: 91
 
 #### `fato_socioeconomica`
 - **Granularidade**: município + ano
@@ -273,19 +274,21 @@ dbt docs serve               # http://localhost:8080
 #### `fato_taxa_distorcao_municipio`
 - **Granularidade**: município + ano (grão macro — agregado municipal)
 - **Fonte**: `stg_taxa_distorcao` WHERE `categoria_localidade = 'TOTAL' AND dependencia_administrativa = 'TOTAL'`
+- **Filtro adicional**: WHERE `COALESCE(taxa_distorcao_ensino_fundamental, 0) != 0 OR COALESCE(taxa_distorcao_ensino_medio, 0) != 0` — elimina 2 linhas com todas as métricas zeradas
 - **JOIN**: `id_municipio` → `dim_localidade`; `ano_competencia` → `dim_calendario.ano_referencia`
 - **Testes**: `not_null` em sk_localidade, sk_calendario; `relationships` → dim_localidade e dim_calendario
 - **Observação**: TDI armazenada como decimal (0.5 = 50%). A divisão por 100.0 ocorre na staging (`stg_taxa_distorcao`).
-- **Linhas**: 27.850
+- **Linhas**: 27.848
 
 #### `fato_taxa_distorcao_rede_categoria`
 - **Granularidade**: município + ano + categoria_localidade + rede (grão micro — desagregado)
 - **Fonte**: `stg_taxa_distorcao` WHERE `categoria_localidade != 'TOTAL' OR dependencia_administrativa != 'TOTAL'`
+- **Filtro adicional**: WHERE `COALESCE(taxa_distorcao_ensino_fundamental, 0) != 0 OR COALESCE(taxa_distorcao_ensino_medio, 0) != 0` — elimina 7.766 linhas com todas as métricas zeradas
 - **JOIN**: `id_municipio` → `dim_localidade`; `ano_competencia` → `dim_calendario.ano_referencia`; `dependencia_administrativa` → `dim_rede.nome_rede`
   - `COALESCE(sk_rede, MD5('DESCONHECIDO'))` p/ preservar integridade referencial
 - **Testes**: `not_null` em sk_localidade, sk_rede, sk_calendario; `relationships` → dim_localidade, dim_rede e dim_calendario
 - **Observação**: TDI armazenada como decimal (0.5 = 50%). A divisão por 100.0 ocorre na staging (`stg_taxa_distorcao`).
-- **Linhas**: 151.146
+- **Linhas**: 292.318
 
 ---
 

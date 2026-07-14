@@ -34,6 +34,8 @@ fato AS (
         ON t.ano_competencia = c.ano_referencia
     LEFT JOIN dim_rede r
         ON UPPER(TRIM(t.dependencia_administrativa)) = r.nome_rede
+    WHERE COALESCE(t.taxa_distorcao_ensino_fundamental, 0) != 0
+       OR COALESCE(t.taxa_distorcao_ensino_medio, 0) != 0
 )
 
 SELECT * FROM fato

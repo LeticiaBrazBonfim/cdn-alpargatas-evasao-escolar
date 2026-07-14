@@ -75,3 +75,5 @@ INNER JOIN dim_localidade d
     AND c.nome_uf = d.nome_uf
 INNER JOIN dim_calendario ca
     ON c.ano_competencia = ca.ano_referencia
+WHERE COALESCE(c.quantidade_projetos, 0) != 0
+   OR COALESCE(c.quantidade_beneficiados, 0) != 0
