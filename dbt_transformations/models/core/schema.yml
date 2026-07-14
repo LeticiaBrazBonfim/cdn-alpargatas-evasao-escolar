@@ -50,7 +50,7 @@ models:
   - name: dim_rede
     description: |
       Dimensão de Rede de Ensino (Conformed Dimension). Snapshot estático (Type 1).
-      Fonte: stg_ideb (coluna REDE) e stg_taxa_distorcao (coluna NO_DEPENDENCIA) — INEP.
+      Fonte: ideb_municipios (coluna REDE) e taxa_distorcao (coluna NO_DEPENDENCIA) — INEP.
       Granularidade: 1 linha por rede.
       Redes: ESTADUAL (id=2), MUNICIPAL (id=4), FEDERAL (id=6), PRIVADA (id=8), TOTAL (agregado). DESCONHECIDO (fallback p/ chaves órfãs).
     columns:
@@ -122,7 +122,7 @@ models:
         tests:
           - not_null
 
-  - name: fato_socioeconomica
+  - name: fato_pib_municipios
     description: |
       Fato: Indicadores Socioeconômicos Municipais.
       Fonte: Produto Interno Bruto (PIB) e Valor Adicionado Bruto (VA) - IBGE.
@@ -285,7 +285,7 @@ models:
           Taxa de distorção idade-série no Ensino Médio.
           Unidade: decimal (0-1). Ex: 0.5 = 50%.
 
-  - name: fato_ideb
+  - name: fato_ideb_municipios
     description: |
       Fato: Índice de Desenvolvimento da Educação Básica (IDEB).
       Fonte: Instituto Nacional de Estudos e Pesquisas Educacionais (INEP).

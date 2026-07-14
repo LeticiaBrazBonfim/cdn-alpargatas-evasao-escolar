@@ -12,6 +12,10 @@ import yaml
 
 DEFAULT_PROFILE = "alpargatas-impacto-educacional"
 
+TABLE_NAME_OVERRIDES = {
+    "dtb_municipios": "dbt_municipios",
+}
+
 
 def load_yaml(path):
     with path.open("r", encoding="utf-8") as file:
@@ -119,7 +123,7 @@ def prepare_table(pg_cursor, schema, table_name, columns, if_exists):
 
 
 def load_parquet(duck_connection, pg_connection, schema, path, batch_size, if_exists):
-    table_name = path.stem
+    table_name = TABLE_NAME_OVERRIDES.get(path.stem, path.stem)
     parquet_path = path.as_posix()
     duck_cursor = duck_connection.execute("select * from read_parquet(?)", [parquet_path])
     columns = [column[0] for column in duck_cursor.description]
@@ -170,7 +174,7 @@ def main():
     profiles_file = profile_path(args.profiles_dir)
     profile_name = project_profile_name(project_dir)
     config = target_config(profile_name, profiles_file, args.target)
-    schema = "raw"
+    schema = "dev_raw"
 
     parquet_files = sorted(data_dir.glob("*.parquet"))
     if not parquet_files:

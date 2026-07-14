@@ -17,7 +17,7 @@ dim_rede AS (
 ),
 
 stg_ideb_wide AS (
-    SELECT * FROM {{ ref('stg_ideb') }}
+    SELECT * FROM {{ ref('ideb_municipios') }}
 ),
 
 unpivot AS (

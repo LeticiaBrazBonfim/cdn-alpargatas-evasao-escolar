@@ -2,6 +2,6 @@ SELECT
     id_municipio,
     ano_competencia,
     COUNT(*) AS qtd_duplicatas
-FROM {{ ref('stg_taxa_distorcao_municipio') }}
+FROM {{ ref('pib_municipios') }}
 GROUP BY id_municipio, ano_competencia
 HAVING COUNT(*) > 1

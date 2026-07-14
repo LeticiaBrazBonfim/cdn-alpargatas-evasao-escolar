@@ -1,5 +1,5 @@
 WITH source AS (
-    SELECT * FROM {{ source('raw', 'pib_municipios') }}
+    SELECT * FROM {{ source('dev_raw', 'pib_municipios') }}
 ),
 
 pib_limpo AS (

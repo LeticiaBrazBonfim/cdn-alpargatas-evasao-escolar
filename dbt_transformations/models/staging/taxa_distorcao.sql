@@ -1,5 +1,5 @@
 WITH source AS (
-    SELECT * FROM {{ source('raw', 'taxa_distorcao') }}
+    SELECT * FROM {{ source('dev_raw', 'taxa_distorcao') }}
 ),
 
 transformacao AS (
@@ -19,8 +19,6 @@ transformacao AS (
 
     FROM source
     WHERE "CO_MUNICIPIO" IS NOT NULL
-      AND (UPPER(TRIM("NO_CATEGORIA")) != 'TOTAL'
-        OR UPPER(TRIM("NO_DEPENDENCIA")) != 'TOTAL')
 )
 
 SELECT * FROM transformacao

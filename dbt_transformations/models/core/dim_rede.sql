@@ -2,19 +2,13 @@
 
 WITH staging_rede AS (
     SELECT UPPER(TRIM(nome_rede)) AS nome_rede
-    FROM {{ ref('stg_ideb') }}
+    FROM {{ ref('ideb_municipios') }}
     WHERE nome_rede IS NOT NULL
 
     UNION
 
     SELECT UPPER(TRIM(dependencia_administrativa))
-    FROM {{ ref('stg_taxa_distorcao_municipio') }}
-    WHERE dependencia_administrativa IS NOT NULL
-
-    UNION
-
-    SELECT UPPER(TRIM(dependencia_administrativa))
-    FROM {{ ref('stg_taxa_distorcao_rede_categoria') }}
+    FROM {{ ref('taxa_distorcao') }}
     WHERE dependencia_administrativa IS NOT NULL
 ),
 

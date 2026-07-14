@@ -1,5 +1,5 @@
 WITH source AS (
-    SELECT * FROM {{ source('raw', 'ideb_municipios') }}
+    SELECT * FROM {{ source('dev_raw', 'ideb_municipios') }}
 ),
 
 {% set anos = [2005, 2007, 2009, 2011, 2013, 2015, 2017, 2019, 2021, 2023] %}

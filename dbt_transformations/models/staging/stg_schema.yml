@@ -1,7 +1,7 @@
 version: 2
 
 models:
-  - name: stg_dtb
+  - name: dbt_municipios
     description: "Diretório Territorial Brasileiro (IBGE). Fonte da verdade para os códigos numéricos de municípios e estados."
     columns:
       - name: id_municipio
@@ -10,8 +10,8 @@ models:
           - unique
           - not_null
 
-  - name: stg_socioeconomica
-    description: "Indicadores socioeconômicos municipais (PIB/VAB - IBGE) — staging com casting direto. Substitui stg_pib_municipios."
+  - name: pib_municipios
+    description: "Indicadores socioeconômicos municipais (PIB/VAB - IBGE) — staging com casting direto."
     columns:
       - name: id_municipio
         description: "Código numérico oficial do município."
@@ -19,7 +19,7 @@ models:
           - not_null
           - relationships:
               arguments:
-                to: ref('stg_dtb')
+                to: ref('dbt_municipios')
                 field: id_municipio
       - name: ano_competencia
         description: "Ano de referência do PIB."
@@ -28,8 +28,8 @@ models:
       - name: pib_per_capita
         description: "Produto Interno Bruto per capita (R$ 1,00)."
 
-  - name: stg_taxa_distorcao_municipio
-    description: "Taxa de distorção idade-série — grão municipio (categoria=TOTAL, dependencia=TOTAL). INEP."
+  - name: taxa_distorcao
+    description: "Taxa de distorção idade-série (INEP) — staging unificada. Contém todos os grãos (municipio e rede/categoria). O filtro por grão é feito nos fatos core."
     columns:
       - name: id_municipio
         description: "Código numérico oficial do município."
@@ -37,35 +37,7 @@ models:
           - not_null
           - relationships:
               arguments:
-                to: ref('stg_dtb')
-                field: id_municipio
-      - name: ano_competencia
-        description: "Ano do Censo Escolar."
-        tests:
-          - not_null
-      - name: categoria_localidade
-        description: "Categoria da localidade: TOTAL (agregado municipal)."
-        tests:
-          - not_null
-      - name: dependencia_administrativa
-        description: "Dependência administrativa: TOTAL (agregado municipal)."
-        tests:
-          - not_null
-      - name: taxa_distorcao_ensino_fundamental
-        description: "Taxa de distorção idade-série — Ensino Fundamental (decimal 0-1)."
-      - name: taxa_distorcao_ensino_medio
-        description: "Taxa de distorção idade-série — Ensino Médio (decimal 0-1)."
-
-  - name: stg_taxa_distorcao_rede_categoria
-    description: "Taxa de distorção idade-série — grão desagregado por rede e categoria. INEP."
-    columns:
-      - name: id_municipio
-        description: "Código numérico oficial do município."
-        tests:
-          - not_null
-          - relationships:
-              arguments:
-                to: ref('stg_dtb')
+                to: ref('dbt_municipios')
                 field: id_municipio
       - name: ano_competencia
         description: "Ano do Censo Escolar."
@@ -84,7 +56,7 @@ models:
       - name: taxa_distorcao_ensino_medio
         description: "Taxa de distorção idade-série — Ensino Médio (decimal 0-1)."
 
-  - name: stg_projetos_ia
+  - name: projetos_ia
     description: "Projetos de IA educacional Alpargatas — staging 1:1. Filtra linhas com soma de projetos = 0."
     columns:
       - name: ano_competencia
@@ -96,8 +68,8 @@ models:
       - name: nome_municipio
         description: "Nome do município em maiúsculas."
 
-  - name: stg_ideb
-    description: "Índice de Desenvolvimento da Educação Básica (INEP) — staging wide format 1:1. O UNPIVOT para formato longo é realizado na camada core (fato_ideb)."
+  - name: ideb_municipios
+    description: "Índice de Desenvolvimento da Educação Básica (INEP) — staging wide format 1:1. O UNPIVOT para formato longo é realizado na camada core (fato_ideb_municipios)."
     columns:
       - name: id_municipio
         description: "Código numérico oficial do município."
@@ -105,7 +77,7 @@ models:
           - not_null
           - relationships:
               arguments:
-                to: ref('stg_dtb')
+                to: ref('dbt_municipios')
                 field: id_municipio
       - name: nome_municipio
         description: "Nome do município em maiúsculas."

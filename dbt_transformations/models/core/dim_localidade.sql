@@ -1,7 +1,7 @@
 {{ config(materialized='table') }}
 
 WITH staging_dtb AS (
-    SELECT * FROM {{ ref('stg_dtb') }}
+    SELECT * FROM {{ ref('dbt_municipios') }}
 ),
 
 dedup AS (

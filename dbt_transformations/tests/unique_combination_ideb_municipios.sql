@@ -5,6 +5,6 @@ SELECT
     id_municipio,
     nome_rede,
     COUNT(*) AS qtd_duplicatas
-FROM {{ ref('stg_ideb') }}
+FROM {{ ref('ideb_municipios') }}
 GROUP BY id_municipio, nome_rede
 HAVING COUNT(*) > 1

@@ -14,7 +14,7 @@ dim_rede AS (
 ),
 
 taxa_distorcao AS (
-    SELECT * FROM {{ ref('stg_taxa_distorcao_rede_categoria') }}
+    SELECT * FROM {{ ref('taxa_distorcao') }}
 ),
 
 fato AS (
@@ -32,8 +32,10 @@ fato AS (
         ON t.ano_competencia = c.ano_referencia
     LEFT JOIN dim_rede r
         ON UPPER(TRIM(t.dependencia_administrativa)) = r.nome_rede
-    WHERE COALESCE(t.taxa_distorcao_ensino_fundamental, 0) != 0
-       OR COALESCE(t.taxa_distorcao_ensino_medio, 0) != 0
+    WHERE (t.categoria_localidade != 'TOTAL'
+        OR t.dependencia_administrativa != 'TOTAL')
+      AND (COALESCE(t.taxa_distorcao_ensino_fundamental, 0) != 0
+        OR COALESCE(t.taxa_distorcao_ensino_medio, 0) != 0)
 )
 
 SELECT * FROM fato

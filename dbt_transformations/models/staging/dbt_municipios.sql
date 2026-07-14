@@ -1,5 +1,5 @@
 WITH source AS (
-    SELECT * FROM {{ source('raw', 'dtb_municipios') }}
+    SELECT * FROM {{ source('dev_raw', 'dbt_municipios') }}
 ),
 
 dtb AS (

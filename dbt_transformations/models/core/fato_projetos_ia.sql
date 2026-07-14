@@ -11,7 +11,7 @@ dim_localidade AS (
 ),
 
 stg_projetos AS (
-    SELECT * FROM {{ ref('stg_projetos_ia') }}
+    SELECT * FROM {{ ref('projetos_ia') }}
 ),
 
 uf_mapping AS (

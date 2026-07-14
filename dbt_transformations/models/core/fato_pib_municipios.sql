@@ -10,7 +10,7 @@ dim_localidade AS (
 ),
 
 pib AS (
-    SELECT * FROM {{ ref('stg_socioeconomica') }}
+    SELECT * FROM {{ ref('pib_municipios') }}
 ),
 
 fato_socioeconomica AS (

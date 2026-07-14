@@ -1,11 +1,11 @@
 version: 2
 
 sources:
-  - name: raw
+  - name: dev_raw
     description: "Camada de ingestão bruta carregada no Postgres/Neon a partir dos arquivos Parquet do pipeline ELT em Python."
-    schema: raw
+    schema: dev_raw
     tables:
-      - name: dtb_municipios
+      - name: dbt_municipios
         description: "Diretório de municípios do IBGE."
       - name: pib_municipios
         description: "Produto Interno Bruto municipal (IBGE)."
