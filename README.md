@@ -54,38 +54,39 @@ data/raw/*.parquet
 | Modelo | Fonte | Função |
 |--------|-------|--------|
 | `stg_dtb` | raw.dtb_municipios | Limpeza + UPPER/TRIM de nomes |
-| `stg_pib_municipios` | raw.pib_municipios | REPLACE pt-BR → US, CAST NUMERIC |
+| `stg_pib_municipios` | raw.pib_municipios | CAST NUMERIC direto (dados já em formato US no Neon) |
 | `stg_projetos_ia` | raw.projetos_ia | 1:1, 12 colunas (projetos_1..6 + beneficiados_1..6) |
 | `stg_ideb` | raw.ideb_municipios | Wide format, Jinja gera 100+ colunas |
-| `stg_taxa_distorcao` | raw.taxa_distorcao | Safe_cast de taxas (trata '--' como NULL) |
+| `stg_taxa_distorcao` | raw.taxa_distorcao | Safe_cast de taxas (trata '--' como NULL), divisão por 100.0 |
 
-### Core (2 dimensões + 5 fatos, `materialized='table'`)
+### Core (3 dimensões + 5 fatos, `materialized='table'`)
 
 **Dimensões:**
 - `dim_localidade` (5.571 municípios) — SK = MD5(id_municipio)
 - `dim_rede` (6 redes) — SK = MD5(nome_rede), redes: ESTADUAL, MUNICIPAL, FEDERAL, PRIVADA, TOTAL, DESCONHECIDO
+- `dim_calendario` (32 anos, 2000-2031) — SK = MD5(ano_referencia)
 
 **Fatos:**
 
 | Fato | Granularidade | Linhas | Métricas |
 |------|---------------|--------|----------|
 | `fato_ideb` | município + rede + ano | 82.726 | IDEB observado/projeção, notas SAEB, taxas aprovação, indicador rendimento |
-| `fato_projetos_ia` | município + ano | 100 | Quantidade projetos, quantidade beneficiados |
+| `fato_projetos_ia` | município + ano | 91 | Quantidade projetos, quantidade beneficiados |
 | `fato_socioeconomica` | município + ano | 66.825 | PIB, VAB por setor, impostos líquidos |
-| `fato_taxa_distorcao_municipio` | município + ano | 27.850 | Taxa distorção ensino fundamental/médio |
-| `fato_taxa_distorcao_rede_categoria` | município + ano + categoria + rede | 151.146 | Taxa distorção ensino fundamental/médio |
+| `fato_taxa_distorcao_municipio` | município + ano | 27.848 | Taxa distorção ensino fundamental/médio |
+| `fato_taxa_distorcao_rede_categoria` | município + ano + categoria + rede | 292.318 | Taxa distorção ensino fundamental/médio |
 
 ---
 
 ## Qualidade e Testes
 
-**46 testes automáticos** validam o pipeline:
+**54 testes automáticos** validam o pipeline:
 
 | Tipo | Qtd | O que valida |
 |------|-----|--------------|
-| `unique` | 5 | SKs, chaves naturais |
-| `not_null` | 27 | Colunas obrigatórias |
-| `relationships` | 10 | Integridade referencial (FK → PK) |
+| `unique` | 6 | SKs, chaves naturais |
+| `not_null` | 30 | Colunas obrigatórias |
+| `relationships` | 15 | Integridade referencial (FK → PK) |
 | Singulares | 3 | Chaves compostas (staging) |
 
 ---
@@ -102,7 +103,7 @@ data/raw/*.parquet
 │   ├── models/
 │   │   ├── sources.yml                    # Fontes raw
 │   │   ├── staging/                       # 5 modelos staging (views)
-│   │   ├── core/                          # 7 modelos core (tables)
+│   │   ├── core/                          # 8 modelos core (tables)
 │   │   └── staging/stg_schema.yml         # Testes staging
 │   ├── macros/safe_cast.sql               # Macros de casting seguro
 │   ├── scripts/load_raw_to_postgres.py    # Carga parquet → Neon
