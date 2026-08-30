@@ -3,12 +3,12 @@ version: 2
 models:
   - name: dim_localidade
     description: |
-      Dimensão de Localidade (Município). Snapshot estático (Type 1).
+      Dimensão de Localidade (Município).
       Fonte: Diretório Territorial Brasileiro (DTB) do IBGE.
       Granularidade: 1 linha por município brasileiro.
     columns:
       - name: sk_localidade
-        description: "Surrogate Key (chave substituta) imutável: hash MD5 de id_municipio. Independente de ordenação ou recarga."
+        description: "Surrogate Key determinística, hash MD5 do código IBGE do município (id_municipio). Estável entre execuções."
         tests:
           - unique
           - not_null
@@ -30,6 +30,11 @@ models:
         tests:
           - not_null
 
+      - name: sigla_uf
+        description: "Sigla da Unidade Federativa (ex: PB, PE, SP). Derivada do código numérico oficial do IBGE."
+        tests:
+          - not_null
+
       - name: id_nome_uf
         description: "Descrição composta: id_uf concatenado com nome da UF."
 
@@ -38,8 +43,6 @@ models:
 
       - name: id_regiao_geografica_imediata
         description: "Código da Região Geográfica Imediata (IBGE)."
-        tests:
-          - not_null
 
       - name: id_nome_regiao_geografica_imediata
         description: "Descrição composta: id e nome da Região Geográfica Imediata."
@@ -47,45 +50,52 @@ models:
       - name: nome_regiao_geografica_imediata
         description: "Nome da Região Geográfica Imediata em maiúsculas."
 
-  - name: dim_rede
-    description: |
-      Dimensão de Rede de Ensino (Conformed Dimension). Snapshot estático (Type 1).
-      Fonte: ideb_municipios (coluna REDE) e taxa_distorcao (coluna NO_DEPENDENCIA) — INEP.
-      Granularidade: 1 linha por rede.
-      Redes: ESTADUAL (id=2), MUNICIPAL (id=4), FEDERAL (id=6), PRIVADA (id=8), TOTAL (agregado). DESCONHECIDO (fallback p/ chaves órfãs).
-    columns:
-      - name: sk_rede
-        description: "Surrogate Key (chave substituta) imutável: hash MD5 de nome_rede. Usada para JOINs em fatos."
-        tests:
-          - unique
-          - not_null
-
-      - name: id_rede
-        description: "Chave Natural: código arbitrário da rede (2=ESTADUAL, 4=MUNICIPAL, 6=FEDERAL, 8=PRIVADA). NULL para TOTAL e DESCONHECIDO."
-        tests:
-          - unique
-
-      - name: id_nome_rede
-        description: "Descrição composta: id_rede + ' - ' + rede. Redes sem id (TOTAL, DESCONHECIDO) exibem apenas o nome."
-
-      - name: nome_rede
-        description: "Nome amigável da rede de ensino em maiúsculas. Valores: ESTADUAL, MUNICIPAL, FEDERAL, PRIVADA, TOTAL, DESCONHECIDO."
-
   - name: dim_calendario
     description: |
-      Dimensão Calendário. Snapshot estático (Type 1).
+      Dimensão Temporal.
+      Gera anos de 2000 a 2031 para suporte a séries históricas.
       Granularidade: 1 linha por ano.
-      Período: 2000 a 2031.
     columns:
       - name: sk_calendario
-        description: "Surrogate Key: hash MD5 do ano_referencia."
+        description: "Surrogate Key determinística, hash MD5 do ano."
         tests:
           - unique
           - not_null
 
       - name: ano_referencia
-        description: "Ano de referência (INT). Usado para joins temporais."
+        description: "Ano de referência (2000-2031)."
         tests:
+          - unique
+          - not_null
+
+  - name: dim_rede
+    description: |
+      Dimensão de Rede de Ensino.
+      Fontes: ideb_municipios (coluna REDE) e stg_taxa_distorcao (dependencia_administrativa).
+      Granularidade: 1 linha por tipo de rede.
+    columns:
+      - name: sk_rede
+        description: "Surrogate Key determinística, hash MD5 do nome_rede."
+        tests:
+          - unique
+          - not_null
+
+      - name: nome_rede
+        description: "Nome padronizado da rede: FEDERAL, ESTADUAL, MUNICIPAL, PRIVADA, PÚBLICA ou DESCONHECIDO."
+        tests:
+          - unique
+          - not_null
+
+      - name: id_rede
+        description: "Código numérico da rede (0=Pública, 2=Estadual, 4=Municipal, 6=Federal, 8=Privada, -1=Desconhecido)."
+        tests:
+          - unique
+          - not_null
+
+      - name: id_nome_rede
+        description: "Descrição composta: id_rede concatenado com nome_rede."
+        tests:
+          - unique
           - not_null
 
   - name: fato_projetos_ia
@@ -112,6 +122,11 @@ models:
                 to: ref('dim_calendario')
                 field: sk_calendario
 
+      - name: ano
+        description: "Ano de execução do projeto (ano_competencia)."
+        tests:
+          - not_null
+
       - name: quantidade_projetos
         description: "Total de projetos de IA executados no município naquele ano."
         tests:
@@ -128,7 +143,7 @@ models:
       Fonte: Produto Interno Bruto (PIB) e Valor Adicionado Bruto (VA) - IBGE.
       Granularidade: 1 linha por município + ano.
 
-      IMPORTANTE: Cálculos de referência IBGE:
+      Cálculos de referência IBGE:
       - Valor Adicionado Bruto (VAB) = soma dos valores adicionados por setor
       - PIB = VAB Total + Impostos líquidos sobre produtos
       - PIB per capita: NÃO DISPONÍVEL (não há dados de população na fonte primária)
@@ -151,150 +166,58 @@ models:
                 to: ref('dim_calendario')
                 field: sk_calendario
 
-      - name: va_bruto_agropecuaria
+      - name: ano
+        description: "Ano de referência da métrica."
+        tests:
+          - not_null
+
+      - name: pib_agropecuaria
         description: |
           Valor Adicionado Bruto do setor Agropecuário.
-          Unidade: R$ 1.000 (milhares de reais).
-          Preços: correntes (sem deflacionamento).
+          Unidade: R$ 1.000 (milhares de reais). Preços: correntes.
 
-      - name: va_bruto_industria
+      - name: pib_industria
         description: |
           Valor Adicionado Bruto do setor Industrial.
-          Unidade: R$ 1.000 (milhares de reais).
-          Preços: correntes.
+          Unidade: R$ 1.000 (milhares de reais). Preços: correntes.
 
-      - name: va_bruto_servicos
+      - name: pib_servicos
         description: |
           Valor Adicionado Bruto do setor de Serviços.
           EXCLUÍDOS: Administração pública, defesa, educação e saúde públicas, seguridade social.
-          Unidade: R$ 1.000.
-          Preços: correntes.
+          Unidade: R$ 1.000. Preços: correntes.
 
-      - name: va_bruto_administracao_publica
+      - name: pib_administracao_publica
         description: |
           Valor Adicionado Bruto da Administração Pública, defesa, educação e saúde públicas, seguridade social.
-          Unidade: R$ 1.000.
-          Preços: correntes.
+          Unidade: R$ 1.000. Preços: correntes.
 
-      - name: va_bruto_total
+      - name: pib_vab_total
         description: |
           Soma dos Valores Adicionados Brutos de todos os setores.
-          Unidade: R$ 1.000.
-          Preços: correntes.
+          Unidade: R$ 1.000. Preços: correntes.
 
-      - name: impostos_liquidos
+      - name: pib_impostos
         description: |
           Impostos líquidos de subsídios sobre produtos.
-          Diferença entre PIB e VAB Total.
-          Unidade: R$ 1.000.
-          Preços: correntes.
+          Diferença entre PIB e VAB Total. Unidade: R$ 1.000. Preços: correntes.
 
       - name: pib_total
         description: |
           Produto Interno Bruto Total = VAB Total + Impostos líquidos.
-          Unidade: R$ 1.000.
-          Preços: correntes.
+          Unidade: R$ 1.000. Preços: correntes.
 
       - name: pib_per_capita
         description: |
           Produto Interno Bruto per capita.
-          Unidade: R$ 1,00 (reais por habitante).
-          Preços: correntes.
-          Calculado pelo IBGE com base na população do Censo/estimativas.
-
-  - name: fato_taxa_distorcao_municipio
-    description: |
-      Fato: Taxa de Distorção Idade-Série — Agregado Municipal (Grão Macro).
-      Fonte: INEP (Censo Escolar). Apenas linhas com categoria=TOTAL e dependencia=TOTAL.
-      Granularidade: 1 linha por município + ano.
-
-      Taxa de Distorção: percentual de alunos com idade superior à recomendada para a série.
-      Valores esperados: entre 0 e 1 (decimal). Armazenado como decimal (0.5 = 50%).
-    columns:
-      - name: sk_localidade
-        description: "Foreign Key para dim_localidade."
-        tests:
-          - not_null
-          - relationships:
-              arguments:
-                to: ref('dim_localidade')
-                field: sk_localidade
-
-      - name: sk_calendario
-        description: "Foreign Key para dim_calendario."
-        tests:
-          - not_null
-          - relationships:
-              arguments:
-                to: ref('dim_calendario')
-                field: sk_calendario
-
-      - name: taxa_distorcao_ensino_fundamental
-        description: |
-          Taxa de distorção idade-série no Ensino Fundamental.
-          Unidade: decimal (0-1). Ex: 0.5 = 50%.
-
-      - name: taxa_distorcao_ensino_medio
-        description: |
-          Taxa de distorção idade-série no Ensino Médio.
-          Unidade: decimal (0-1). Ex: 0.5 = 50%.
-
-  - name: fato_taxa_distorcao_rede_categoria
-    description: |
-      Fato: Taxa de Distorção Idade-Série — por Rede e Categoria (Grão Micro).
-      Fonte: INEP (Censo Escolar). Exclui o agregado municipal puro (categoria=TOTAL e dependencia=TOTAL).
-      Granularidade: 1 linha por município + ano + categoria_localidade + rede (sk_rede).
-    columns:
-      - name: sk_localidade
-        description: "Foreign Key para dim_localidade."
-        tests:
-          - not_null
-          - relationships:
-              arguments:
-                to: ref('dim_localidade')
-                field: sk_localidade
-
-      - name: sk_rede
-        description: "Foreign Key para dim_rede (Conformed Dimension). Chave substituta MD5 do nome da rede de ensino."
-        tests:
-          - not_null
-          - relationships:
-              arguments:
-                to: ref('dim_rede')
-                field: sk_rede
-
-      - name: sk_calendario
-        description: "Foreign Key para dim_calendario."
-        tests:
-          - not_null
-          - relationships:
-              arguments:
-                to: ref('dim_calendario')
-                field: sk_calendario
-
-      - name: categoria_localidade
-        description: "Categoria da localidade: Urbana, Rural ou TOTAL (quando rede é específica)."
-
-      - name: taxa_distorcao_ensino_fundamental
-        description: |
-          Taxa de distorção idade-série no Ensino Fundamental.
-          Unidade: decimal (0-1). Ex: 0.5 = 50%.
-
-      - name: taxa_distorcao_ensino_medio
-        description: |
-          Taxa de distorção idade-série no Ensino Médio.
-          Unidade: decimal (0-1). Ex: 0.5 = 50%.
+          Unidade: R$ 1,00. Preços: correntes.
 
   - name: fato_ideb_municipios
     description: |
-      Fato: Índice de Desenvolvimento da Educação Básica (IDEB).
-      Fonte: Instituto Nacional de Estudos e Pesquisas Educacionais (INEP).
-      Granularidade: 1 linha por município + ano + rede (ESTADUAL, MUNICIPAL, FEDERAL).
-      Período: Bienal 2005-2023. PÚBLICA removida (é agregado de Estadual + Municipal).
-
-      O IDEB sintetiza aprovação escolar e desempenho nas avaliações (SAEB).
-      Fórmula: IDEB = Nota SAEB × Taxa de Aprovação.
-      Valores esperados: índice 0-10.
+      Fato: Índice de Desenvolvimento da Educação Básica (IDEB) por Município.
+      Fonte: INEP - IDEB Municipal.
+      Granularidade: 1 linha por município + rede + ano.
+      Colunas desagregadas por ano (2005-2023) via UNPIVOT.
     columns:
       - name: sk_localidade
         description: "Foreign Key para dim_localidade."
@@ -324,62 +247,119 @@ models:
                 field: sk_calendario
 
       - name: ideb_observado
-        description: |
-          IDEB Observado (índice 0-10) - métrica principal calculada pelo INEP.
-          Unidade: índice (0-10).
-          Valores nulos indicam ausência de dados.
+        description: "IDEB observado no ano de referência."
 
       - name: ideb_projecao
-        description: |
-          IDEB Projeção/Meta (índice 0-10) - meta estabelecida para o ciclo.
-          Unidade: índice (0-10).
+        description: "IDEB projetado (disponível apenas 2007-2021)."
 
       - name: nota_media_saeb
-        description: |
-          Nota média SAEB (Matemática + Português / 2) - componente do IDEB.
-          Unidade: pontos SAEB (2 casas decimais).
+        description: "Nota média SAEB (escala do exame)."
 
       - name: nota_matematica_saeb
-        description: |
-          Nota SAEB em Matemática - componente do IDEB.
-          Unidade: pontos SAEB (2 casas decimais).
+        description: "Nota de matemática SAEB."
 
       - name: nota_portugues_saeb
-        description: |
-          Nota SAEB em Português - componente do IDEB.
-          Unidade: pontos SAEB (2 casas decimais).
+        description: "Nota de português SAEB."
 
       - name: taxa_aprovacao_series_iniciais
-        description: |
-          Taxa de aprovação nas Séries Iniciais (1º ao 5º ano) - componente do IDEB.
-          Unidade: decimal (0-1). No Metabase, configurar como percentual.
+        description: "Taxa de aprovação séries iniciais (1º ao 5º ano)."
 
       - name: taxa_aprovacao_si_4ano
-        description: |
-          Taxa de aprovação no 4º ano das Séries Iniciais.
-          Unidade: decimal (0-1). No Metabase, configurar como percentual.
+        description: "Taxa de aprovação 4º ano."
 
       - name: taxa_aprovacao_1ano
-        description: |
-          Taxa de aprovação no 1º ano.
-          Unidade: decimal (0-1). No Metabase, configurar como percentual.
+        description: "Taxa de aprovação 1º ano."
 
       - name: taxa_aprovacao_2ano
-        description: |
-          Taxa de aprovação no 2º ano.
-          Unidade: decimal (0-1). No Metabase, configurar como percentual.
+        description: "Taxa de aprovação 2º ano."
 
       - name: taxa_aprovacao_3ano
-        description: |
-          Taxa de aprovação no 3º ano.
-          Unidade: decimal (0-1). No Metabase, configurar como percentual.
+        description: "Taxa de aprovação 3º ano."
 
       - name: taxa_aprovacao_4ano
-        description: |
-          Taxa de aprovação no 4º ano.
-          Unidade: decimal (0-1). No Metabase, configurar como percentual.
+        description: "Taxa de aprovação 4º ano (séries iniciais)."
 
       - name: indicador_rendimento
+        description: "Indicador de rendimento escolar."
+
+  - name: fato_taxa_distorcao_municipio
+    description: |
+      Fato: Taxa de Distorção Idade-Série (consolidado por município).
+      Fonte: INEP - Censo Escolar.
+      Granularidade: 1 linha por município + ano (categoria=TOTAL, dependência=TOTAL).
+      Taxa de Distorção: percentual de alunos com idade superior à recomendada para a série.
+    columns:
+      - name: sk_localidade
+        description: "Foreign Key para dim_localidade."
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_localidade')
+                field: sk_localidade
+
+      - name: sk_calendario
+        description: "Foreign Key para dim_calendario."
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_calendario')
+                field: sk_calendario
+
+      - name: taxa_distorcao_ensino_fundamental
         description: |
-          Indicador de Rendimento (fluxo escolar) - componente do IDEB.
-          Unidade: decimal (0-1).
+          Taxa de distorção idade-série no Ensino Fundamental.
+          Unidade: percentual (0-100). Valores nulos indicam ausência de dados.
+
+      - name: taxa_distorcao_ensino_medio
+        description: |
+          Taxa de distorção idade-série no Ensino Médio.
+          Unidade: percentual (0-100). Valores nulos indicam ausência de dados.
+
+  - name: fato_taxa_distorcao_rede_categoria
+    description: |
+      Fato: Taxa de Distorção Idade-Série desagregada por rede e categoria.
+      Fonte: INEP - Censo Escolar.
+      Granularidade: 1 linha por município + rede + categoria + ano.
+      Exclui registros consolidados (TOTAL/TOTAL).
+    columns:
+      - name: sk_localidade
+        description: "Foreign Key para dim_localidade."
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_localidade')
+                field: sk_localidade
+
+      - name: sk_rede
+        description: "Foreign Key para dim_rede."
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_rede')
+                field: sk_rede
+
+      - name: sk_calendario
+        description: "Foreign Key para dim_calendario."
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_calendario')
+                field: sk_calendario
+
+      - name: categoria_localidade
+        description: "Categoria da localidade: Urbana ou Rural."
+
+      - name: taxa_distorcao_ensino_fundamental
+        description: |
+          Taxa de distorção idade-série no Ensino Fundamental.
+          Unidade: percentual (0-100).
+
+      - name: taxa_distorcao_ensino_medio
+        description: |
+          Taxa de distorção idade-série no Ensino Médio.
+          Unidade: percentual (0-100).

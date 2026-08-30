@@ -1,118 +1,125 @@
-# Dashboard Estratégico — Instituto Alpargatas
+# 📊 Dashboard Estratégico para o Instituto Alpargatas
+
+[Metabase Dashboard](http://seu-metabase-url:3000) | [Documentação Técnica](dbt_transformations/GUIA_INTERNO.md) | [v1.0.0 Release](https://github.com/LeticiaBrazBonfim/cdn-alpargatas-evasao-escolar/releases/tag/v1.0.0)
 
 Análise de dados educacionais e socioeconômicos para otimizar o impacto social e combater a evasão escolar nos municípios de atuação do Instituto Alpargatas.
 
-[Documentação Técnica](dbt_transformations/GUIA_INTERNO.md)
+---
+
+## 📚 Contexto
+
+Este projeto foi originalmente entregue como trabalho acadêmico na disciplina **Análise de Dados** (2025.1, UFPB). 
+
+A partir da release [v1.0.0](https://github.com/LeticiaBrazBonfim/cdn-alpargatas-evasao-escolar/releases/tag/v1.0.0), o projeto evolui continuamente como um **laboratório pessoal** para aplicar e aprofundar conhecimentos em engenharia de dados, modelo dimensional e business intelligence.
 
 ---
 
-## Contexto
+## 🎯 Sobre o Projeto
 
-Este projeto integra dados públicos (INEP, IBGE) com dados privados do Instituto Alpargatas em um **modelo dimensional Kimball (Star Schema)** implementado em **dbt (Postgres/Neon)**. O objetivo é oferecer insights baseados em evidências através de dashboards no Metabase.
+Este projeto foi desenvolvido como uma solução de análise de dados para o **Instituto Alpargatas**, com o objetivo de aprimorar a eficácia de suas ações nos municípios atendidos.
 
----
+A ferramenta integra dados públicos (IBGE, INEP) com dados privados do Instituto, oferecendo insights baseados em evidências através de um **dashboard no Metabase**. A análise permite:
 
-## Fontes de Dados
-
-### Públicas
-- **INEP** — Índice de Desenvolvimento da Educação Básica (IDEB) 2005-2023, Taxa de Distorção Idade-Série 2019-2023
-- **IBGE** — Produto Interno Bruto (PIB) Municipal 2010-2021, Diretório Territorial Brasileiro (DTB)
-
-### Privadas
-- **Instituto Alpargatas** — Projetos de Inteligência Artificial Educacional e beneficiários (2020-2025)
+- ✅ **Decisões Estratégicas**: Orientar o planejamento com dados consolidados e validados
+- 🎯 **Ações Direcionadas**: Otimizar a alocação de recursos para regiões e públicos prioritários
+- 🚀 **Maximização de Impacto Social**: Aumentar o alcance e eficiência das iniciativas educacionais
 
 ---
 
-## Arquitetura
+## 📊 Acessando o Dashboard
 
-O projeto adota o paradigma ELT (Extract, Load, Transform), centralizando o processamento computacional no motor do banco de dados em nuvem.
+O dashboard em **Metabase** já está atualizado com os dados mais recentes. Você pode:
+
+1. **Acessar**: [Metabase Dashboard](http://seu-metabase-url:3000)
+2. **Visualizar**: Dashboards prontos com análises de impacto
+3. **Explorar**: Dados por município, região, período
+4. **Exportar**: Relatórios em PDF/Excel
+
+**Não é necessário instalar nada** - o dashboard já consome os dados de produção.
+
+---
+
+## 📚 Fontes de Dados
+
+O projeto integra múltiplas fontes de dados públicos e privados:
+
+### Dados Públicos
+
+- **INEP (Instituto Nacional de Estudos e Pesquisas Educacionais)**
+  - Taxa de Distorção Idade-Série (2019-2023)
+  - Índice de Desenvolvimento da Educação Básica (IDEB)
+
+- **IBGE (Instituto Brasileiro de Geografia e Estatística)**
+  - Produto Interno Bruto (PIB) Municipal (2010-2021)
+  - Divisão Territorial Brasileira (municípios, UF, regiões)
+
+### Dados Privados
+
+- **Instituto Alpargatas**
+  - Projetos de Inteligência Artificial Educacional
+  - Dados de beneficiários e instituições atendidas (2020-2025)
+
+---
+
+## 💻 Arquitetura Técnica
+
+O projeto utiliza o **modelo dimensional de Kimball** implementado em **dbt (data build tool)** para garantir qualidade, rastreabilidade e manutenibilidade dos dados:
 
 ```
-data/raw/*.parquet
-    │
-    ▼  Ingestão via load_raw_to_postgres.py (DuckDB atua apenas como leitor)
-    │
-┌────────────────────────────────────────────────────────┐
-│                    Neon (PostgreSQL)                   │
-│                                                        │
-│  [schema: dev_raw]       (Tabelas brutas em formato TEXT)
-│    │                                                   │
-│    ▼ dbt run         (Transformação e Casting)         │
-│  [schema: dev_stg]      (Views espelhadas 1:1)         │
-│    │                                                   │
-│    ▼ dbt run         (Materialização Física)           │
-│  [schema: dev_core]     (Tabelas do Modelo Dimensional)│
-└──────────────────────────┬─────────────────────────────┘
-                           │
-                           ▼ Consultas SQL via conexão direta
-                        Metabase
-                      (Dashboards)
+data/processed/*.parquet (fonte de verdade)
+    ↓
+Camada STAGING (view - leitura direta via read_parquet)
+    ↓
+Camada CORE (table - modelo dimensional)
+    ↓
+Metabase (BI + Dashboards)
 ```
 
-### Staging (5 modelos, `materialized='view'`)
+> **Decisão Arquitetural (2026-08-27):** A camada `raw` foi removida do pipeline dbt. Os arquivos `.parquet` em `data/processed/` são lidos diretamente pela camada staging através do macro `{{ parquet() }}`, que expande para `read_parquet()` do DuckDB. Isso elimina a materialização desnecessária de tabelas intermediárias no banco de dados e reduz a poluição visual no catálogo do BI. Para reverter esta decisão (ex: migração para Postgres/Neon), recrie a pasta `models/raw/`, o arquivo `models/staging/sources.yml` e substitua `{{ parquet() }}` por `{{ ref('raw_...') }}` nos modelos staging.
 
-| Modelo | Fonte | Função |
-|--------|-------|--------|
-| `dbt_municipios` | dev_raw.dbt_municipios | Limpeza + UPPER/TRIM de nomes |
-| `pib_municipios` | dev_raw.pib_municipios | CAST NUMERIC direto (dados já em formato US no Neon) |
-| `projetos_ia` | dev_raw.projetos_ia | 1:1, 12 colunas (projetos_1..6 + beneficiados_1..6) |
-| `ideb_municipios` | dev_raw.ideb_municipios | Wide format, Jinja gera 100+ colunas |
-| `taxa_distorcao` | dev_raw.taxa_distorcao | Safe_cast de taxas (trata '--' como NULL), divisão por 100.0 |
-
-### Core (3 dimensões + 5 fatos, `materialized='table'`)
-
-**Dimensões:**
-- `dim_localidade` (5.571 municípios) — SK = MD5(id_municipio)
-- `dim_rede` (6 redes) — SK = MD5(nome_rede), redes: ESTADUAL, MUNICIPAL, FEDERAL, PRIVADA, TOTAL, DESCONHECIDO
-- `dim_calendario` (32 anos, 2000-2031) — SK = MD5(ano_referencia)
-
-**Fatos:**
-
-| Fato | Granularidade | Linhas | Métricas |
-|------|---------------|--------|----------|
-| `fato_ideb_municipios` | município + rede + ano | 82.726 | IDEB observado/projeção, notas SAEB, taxas aprovação, indicador rendimento |
-| `fato_projetos_ia` | município + ano | 90 | Quantidade projetos, quantidade beneficiados |
-| `fato_pib_municipios` | município + ano | 66.825 | PIB, VAB por setor, impostos líquidos |
-| `fato_taxa_distorcao_municipio` | município + ano | 27.848 | Taxa distorção ensino fundamental/médio |
-| `fato_taxa_distorcao_rede_categoria` | município + ano + categoria + rede | 292.318 | Taxa distorção ensino fundamental/médio |
+**53 testes automáticos** validam integridade, unicidade e consistência dos dados.
 
 ---
 
-## Qualidade e Testes
+## 🔧 Documentação Técnica
 
-**54 testes automáticos** validam o pipeline:
+Para desenvolvedores/analistas que precisam manter ou evoluir o projeto:
 
-| Tipo | Qtd | O que valida |
-|------|-----|--------------|
-| `unique` | 6 | SKs, chaves naturais |
-| `not_null` | 30 | Colunas obrigatórias |
-| `relationships` | 15 | Integridade referencial (FK → PK) |
-| Singulares | 3 | Chaves compostas (staging) |
+- **[Guia Interno Detalhado](dbt_transformations/GUIA_INTERNO.md)**: Fluxo completo do pipeline, modelos dbt, testes
+- **[Schema de Dados](dbt_transformations/models/core/schema.yml)**: Documentação de cada tabela e coluna
+- **[README dbt](dbt_transformations/README.md)**: Referência rápida de comandos
 
 ---
 
-## Repositório
+## 📋 Modelos de Dados
 
-```
-├── README.md                              # Este arquivo
-├── AGENTS.md                              # Diretrizes do assistente OpenCode
-├── data/raw/                              # Arquivos .parquet brutos
-├── dbt_transformations/
-│   ├── GUIA_INTERNO.md                    # ⬅ Documentação técnica completa
-│   ├── dbt_project.yml                    # Configuração dbt
-│   ├── models/
-│   │   ├── sources.yml                    # Fontes raw
-│   │   ├── staging/                       # 5 modelos staging (views)
-│   │   ├── core/                          # 8 modelos core (tables)
-│   │   └── staging/stg_schema.yml         # Testes staging
-│   ├── macros/safe_cast.sql               # Macros de casting seguro
-│   ├── scripts/load_raw_to_postgres.py    # Carga parquet → Neon
-│   └── tests/                             # Testes singulares
-└── requirements.txt                       # dbt-postgres, duckdb
-```
+### Dimensões
+- **dim_localidade**: Municípios, UF, Regiões Geográficas (5.571 linhas)
+- **dim_calendario**: Dimensão temporal para séries históricas
+- **dim_rede**: Tipologia de rede de ensino (Federal, Estadual, Municipal, Privada, Pública)
+
+### Fatos (Métricas)
+
+| Fato | Granularidade | Métricas |
+|------|---|---|
+| **fato_projetos_ia** | Município + Ano | Quantidade de projetos, Alunos beneficiados |
+| **fato_pib_municipios** | Município + Ano | PIB, Valor Adicionado Bruto por setor |
+| **fato_ideb_municipios** | Município + Rede + Ano | IDEB observado/projetado, Notas SAEB, Taxas de aprovação |
+| **fato_taxa_distorcao_municipio** | Município + Ano | Taxa idade-série (Fundamental + Médio) |
+| **fato_taxa_distorcao_rede_categoria** | Município + Rede + Categoria + Ano | Taxa idade-série por dependência administrativa |
 
 ---
 
-## Licença
+## 📞 Suporte e Contribuição
 
-Projeto acadêmico e laboratório pessoal — **Leticia Braz Bonfim**.
+Para dúvidas sobre o dashboard ou dados:
+- **BI/Metabase**: Entre em contato com o time de BI
+- **Dados/Modelos**: Veja a documentação técnica
+
+Para melhorias no pipeline, abra uma [Issue](https://github.com/LeticiaBraz/cdn-alpargatas-evasao-escolar/issues) no repositório.
+
+---
+
+## 👨‍💻 Desenvolvimento
+
+**Leticia Braz Bonfim** - [GitHub](https://github.com/LeticiaBraz)

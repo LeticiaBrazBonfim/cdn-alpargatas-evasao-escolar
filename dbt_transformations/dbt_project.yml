@@ -28,5 +28,6 @@ models:
       +materialized: view
       +schema: stg
     core:
+      +database: prod
       +materialized: table
       +schema: core

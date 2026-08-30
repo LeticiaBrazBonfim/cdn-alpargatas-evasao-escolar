@@ -1,5 +1,5 @@
 WITH source AS (
-    SELECT * FROM {{ source('dev_raw', 'dbt_municipios') }}
+    SELECT * FROM {{ parquet('dtb_municipios') }}
 ),
 
 dtb AS (
@@ -7,6 +7,7 @@ dtb AS (
         CAST("Código Município Completo" AS INTEGER) AS id_municipio,
         UPPER(TRIM("Nome_Município")) AS nome_municipio,
         CAST("UF" AS INTEGER) AS id_uf,
+        UPPER(TRIM("sigla_uf")) AS sigla_uf,
         UPPER(TRIM("Nome_UF")) AS nome_uf,
         CAST("Região Geográfica Imediata" AS INTEGER)  AS id_regiao_geografica_imediata,
         UPPER(TRIM("Nome Região Geográfica Imediata")) AS nome_regiao_geografica_imediata

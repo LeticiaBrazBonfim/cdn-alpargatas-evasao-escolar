@@ -1,36 +1,38 @@
 WITH source AS (
-    SELECT * FROM {{ source('dev_raw', 'pib_municipios') }}
+    SELECT * FROM {{ parquet('pib_municipios') }}
 ),
 
-pib_limpo AS (
+pib AS (
     SELECT
         CAST("Código do Município" AS INTEGER) AS id_municipio,
-        CAST("Ano" AS INTEGER) AS ano_competencia,
+        CAST("Ano" AS INTEGER) AS ano,
 
+        -- Colunas de Valor Adicionado
         CAST("Valor adicionado bruto da Agropecuária, 
 a preços correntes
-(R$ 1.000)" AS NUMERIC) AS va_bruto_agropecuaria,
+(R$ 1.000)" AS NUMERIC) AS pib_agropecuaria,
 
         CAST("Valor adicionado bruto da Indústria,
 a preços correntes
-(R$ 1.000)" AS NUMERIC) AS va_bruto_industria,
+(R$ 1.000)" AS NUMERIC) AS pib_industria,
 
         CAST("Valor adicionado bruto dos Serviços,
 a preços correntes 
 - exceto Administração, defesa, educação e saúde públicas e seguridade social
-(R$ 1.000)" AS NUMERIC) AS va_bruto_servicos,
+(R$ 1.000)" AS NUMERIC) AS pib_servicos,
 
         CAST("Valor adicionado bruto da Administração, defesa, educação e saúde públicas e seguridade social, 
 a preços correntes
-(R$ 1.000)" AS NUMERIC) AS va_bruto_administracao_publica,
+(R$ 1.000)" AS NUMERIC) AS pib_administracao_publica,
 
         CAST("Valor adicionado bruto total, 
 a preços correntes
-(R$ 1.000)" AS NUMERIC) AS va_bruto_total,
+(R$ 1.000)" AS NUMERIC) AS pib_vab_total,
 
+        -- Colunas de Impostos e PIB Final
         CAST("Impostos, líquidos de subsídios, sobre produtos, 
 a preços correntes
-(R$ 1.000)" AS NUMERIC) AS impostos_liquidos,
+(R$ 1.000)" AS NUMERIC) AS pib_impostos,
 
         CAST("Produto Interno Bruto, 
 a preços correntes
@@ -42,9 +44,7 @@ a preços correntes
 
     FROM source
     WHERE "Código do Município" IS NOT NULL 
-      AND "Ano" IS NOT NULL
-)
+        AND "Ano" IS NOT NULL
+    )
 
-SELECT * FROM pib_limpo
-WHERE COALESCE(pib_total, 0) != 0
-   OR COALESCE(pib_per_capita, 0) != 0
+SELECT * FROM pib

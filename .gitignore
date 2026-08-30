@@ -6,6 +6,7 @@
 *.duckdb.wal
 
 data/raw/
+data/processed/
 *.parquet
 *.xlsx
 *.xls
@@ -65,3 +66,5 @@ Thumbs.db
 
 # INSTRUÇÕES PARA AGENTES DE IA
 AGENTS.md
+.agents/
+.claude/
