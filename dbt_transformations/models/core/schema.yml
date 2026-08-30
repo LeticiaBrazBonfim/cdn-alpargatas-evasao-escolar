@@ -166,11 +166,6 @@ models:
                 to: ref('dim_calendario')
                 field: sk_calendario
 
-      - name: ano
-        description: "Ano de referência da métrica."
-        tests:
-          - not_null
-
       - name: pib_agropecuaria
         description: |
           Valor Adicionado Bruto do setor Agropecuário.

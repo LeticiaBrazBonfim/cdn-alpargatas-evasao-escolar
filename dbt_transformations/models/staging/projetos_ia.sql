@@ -1,5 +1,5 @@
 WITH source AS (
-    SELECT * FROM {{ source('dev_raw', 'projetos_ia') }}
+    SELECT * FROM {{ source('raw_parquet', 'projetos_ia') }}
 ),
 
 clean AS (

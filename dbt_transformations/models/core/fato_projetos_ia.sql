@@ -10,19 +10,23 @@ dim_calendario AS (
 ),
 
 projetos_ia AS (
-    SELECT * FROM {{ ref('stg_projetos_ia') }}
+    SELECT * FROM {{ ref('projetos_ia') }}
 ),
 
 municipios_com_projeto AS (
     SELECT
-        p.id_municipio,
+        p.nome_municipio,
+        p.sigla_uf,
         p.ano_competencia AS ano,
-        SUM(p.total_projetos_ia) AS quantidade_projetos,
-        SUM(p.total_beneficiados) AS quantidade_beneficiados
+        SUM(COALESCE(p.projetos_1, 0) + COALESCE(p.projetos_2, 0) + COALESCE(p.projetos_3, 0)
+          + COALESCE(p.projetos_4, 0) + COALESCE(p.projetos_5, 0) + COALESCE(p.projetos_6, 0)) AS quantidade_projetos,
+        SUM(COALESCE(p.beneficiados_1, 0) + COALESCE(p.beneficiados_2, 0) + COALESCE(p.beneficiados_3, 0)
+          + COALESCE(p.beneficiados_4, 0) + COALESCE(p.beneficiados_5, 0) + COALESCE(p.beneficiados_6, 0)) AS quantidade_beneficiados
     FROM projetos_ia AS p
-    WHERE p.id_municipio IS NOT NULL
+    WHERE p.nome_municipio IS NOT NULL
     GROUP BY
-        p.id_municipio,
+        p.nome_municipio,
+        p.sigla_uf,
         p.ano_competencia
 ),
 
@@ -35,7 +39,8 @@ fato_com_sk AS (
         m.quantidade_beneficiados
     FROM municipios_com_projeto m
     INNER JOIN dim_localidade d
-        ON m.id_municipio = d.id_municipio
+        ON m.nome_municipio = d.nome_municipio
+        AND m.sigla_uf = d.sigla_uf
     INNER JOIN dim_calendario c
         ON m.ano = c.ano_referencia
 )

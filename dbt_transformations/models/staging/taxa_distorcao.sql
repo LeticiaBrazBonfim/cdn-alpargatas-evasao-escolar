@@ -1,5 +1,5 @@
 WITH source AS (
-    SELECT * FROM {{ source('dev_raw', 'taxa_distorcao') }}
+    SELECT * FROM {{ source('raw_parquet', 'taxa_distorcao') }}
 ),
 
 transformacao AS (

@@ -20,7 +20,7 @@ stg_ideb_wide AS (
     SELECT * FROM {{ ref('ideb_municipios') }}
 ),
 
-unpivot AS (
+ideb_unpivot AS (
     {% for ano in anos %}
     SELECT
         id_municipio,
@@ -64,7 +64,7 @@ fato_ideb AS (
         u.taxa_aprovacao_3ano,
         u.taxa_aprovacao_4ano,
         u.indicador_rendimento
-    FROM unpivot u
+    FROM ideb_unpivot u
     INNER JOIN dim_rede r
         ON u.nome_rede = r.nome_rede
     INNER JOIN dim_localidade d

@@ -1,16 +1,17 @@
 version: 2
 
 sources:
-  - name: dev_raw
-    description: "Camada de ingestão bruta carregada no Postgres/Neon a partir dos arquivos Parquet do pipeline ELT em Python."
-    schema: dev_raw
+  - name: raw_parquet
+    description: "Camada bruta: arquivos Parquet em data/processed/"
+    meta:
+      external_location: "{{ env_var('DBT_DATA_DIR_PATH') }}/{name}.parquet"
     tables:
-      - name: dbt_municipios
-        description: "Diretório de municípios do IBGE."
+      - name: dtb_municipios
+        description: "Diretório Territorial Brasileiro (IBGE)."
       - name: pib_municipios
         description: "Produto Interno Bruto municipal (IBGE)."
       - name: projetos_ia
-        description: "Métricas de projetos de Inteligência Artificial educacional."
+        description: "Métricas de projetos de IA educacional."
       - name: ideb_municipios
         description: "Índice de Desenvolvimento da Educação Básica (INEP)."
       - name: taxa_distorcao

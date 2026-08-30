@@ -22,21 +22,21 @@ fato_socioeconomica AS (
         ca.sk_calendario,
 
         -- Métricas de Valor Adicionado Bruto (VA)
-        p.va_bruto_agropecuaria,
-        p.va_bruto_industria,
-        p.va_bruto_servicos,
-        p.va_bruto_administracao_publica,
-        p.va_bruto_total,
+        p.pib_agropecuaria,
+        p.pib_industria,
+        p.pib_servicos,
+        p.pib_administracao_publica,
+        p.pib_vab_total,
 
         -- Impostos e PIB
-        p.impostos_liquidos,
+        p.pib_impostos,
         p.pib_total,
         p.pib_per_capita
     FROM pib p
     INNER JOIN dim_localidade d
         ON p.id_municipio = d.id_municipio
     INNER JOIN dim_calendario ca
-        ON p.ano_competencia = ca.ano_referencia
+        ON p.ano = ca.ano_referencia
 )
 
 SELECT * FROM fato_socioeconomica

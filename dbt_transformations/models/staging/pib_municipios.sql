@@ -1,5 +1,5 @@
 WITH source AS (
-    SELECT * FROM {{ parquet('pib_municipios') }}
+    SELECT * FROM {{ source('raw_parquet', 'pib_municipios') }}
 ),
 
 pib AS (

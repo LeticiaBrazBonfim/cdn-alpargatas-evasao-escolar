@@ -1,7 +1,7 @@
 version: 2
 
 models:
-  - name: dbt_municipios
+  - name: dtb_municipios
     description: "Diretório Territorial Brasileiro (IBGE). Fonte da verdade para os códigos numéricos de municípios e estados."
     columns:
       - name: id_municipio
@@ -19,9 +19,9 @@ models:
           - not_null
           - relationships:
               arguments:
-                to: ref('dbt_municipios')
+                to: ref('dtb_municipios')
                 field: id_municipio
-      - name: ano_competencia
+      - name: ano
         description: "Ano de referência do PIB."
         tests:
           - not_null
@@ -37,7 +37,7 @@ models:
           - not_null
           - relationships:
               arguments:
-                to: ref('dbt_municipios')
+                to: ref('dtb_municipios')
                 field: id_municipio
       - name: ano_competencia
         description: "Ano do Censo Escolar."
@@ -77,7 +77,7 @@ models:
           - not_null
           - relationships:
               arguments:
-                to: ref('dbt_municipios')
+                to: ref('dtb_municipios')
                 field: id_municipio
       - name: nome_municipio
         description: "Nome do município em maiúsculas."

@@ -1,5 +1,5 @@
 WITH source AS (
-    SELECT * FROM {{ parquet('dtb_municipios') }}
+    SELECT * FROM {{ source('raw_parquet', 'dtb_municipios') }}
 ),
 
 dtb AS (

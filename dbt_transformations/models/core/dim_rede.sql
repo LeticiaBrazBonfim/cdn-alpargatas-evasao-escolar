@@ -23,10 +23,12 @@ dim_rede AS (
         MD5(nome_rede) AS sk_rede,
         nome_rede,
         CASE nome_rede
-            WHEN 'ESTADUAL'  THEN 2
-            WHEN 'MUNICIPAL' THEN 4
-            WHEN 'FEDERAL'   THEN 6
-            WHEN 'PRIVADA'   THEN 8
+            WHEN 'ESTADUAL'     THEN 2
+            WHEN 'MUNICIPAL'    THEN 4
+            WHEN 'FEDERAL'      THEN 6
+            WHEN 'PRIVADA'      THEN 8
+            WHEN 'TOTAL'        THEN 0
+            WHEN 'DESCONHECIDO' THEN -1
         END AS id_rede
     FROM rede_padronizada
 
@@ -35,7 +37,7 @@ dim_rede AS (
     SELECT
         MD5('DESCONHECIDO') AS sk_rede,
         'DESCONHECIDO' AS nome_rede,
-        CAST(NULL AS INTEGER) AS id_rede
+        CAST(-1 AS INTEGER) AS id_rede
 )
 
 SELECT
