@@ -8,6 +8,7 @@ Fluxo completo: Excel → Parquet → dbt (DuckDB) → Metabase
 
 import logging
 import time
+import unicodedata
 from pathlib import Path
 
 import polars as pl
@@ -35,6 +36,16 @@ UF_SIGLAS = {
     "41": "PR", "42": "SC", "43": "RS", "50": "MS", "51": "MT",
     "52": "GO", "53": "DF",
 }
+
+# Tabela de-para: nomes sujos em projetos_ia → nome oficial do DTB
+# Adicione aqui toda exceção nova que o assert abaixo acusar.
+DEPARA_MUNICIPIO_SUJO = {
+    ("PB", "CAMPINA GRANDE- MIXING CENTER"): "CAMPINA GRANDE",
+    ("PB", "QUEIMADAS *"): "QUEIMADAS",
+}
+
+# UFs válidas no parquet de projetos_ia (filtra lixo de cabeçalho)
+UF_VALIDAS_PROJETOS = {"MG", "PB", "PE", "RJ", "SP"}
 
 
 def _dedup_colunas(nomes):
@@ -82,6 +93,73 @@ def _ler_excel_sem_cabecalho(caminho, linha_cabecalho):
     return df.cast(pl.Utf8)
 
 
+def _norm_str(s: str) -> str:
+    """Normaliza string para comparação: uppercase, sem acentos, sem espaços nas pontas."""
+    s = s.upper().strip()
+    s = unicodedata.normalize("NFKD", s)
+    s = "".join(c for c in s if not unicodedata.combining(c))
+    return s
+
+
+def enriquecer_com_id_municipio(
+    df_projetos: pl.DataFrame, df_dtb: pl.DataFrame
+) -> pl.DataFrame:
+    """Adiciona id_municipio (código IBGE 7 dígitos) via nome_municipio + sigla_uf.
+
+    Estratégia: normalização → match exato → tabela de-para para exceções.
+    Órfãos recebem id_municipio = "-1" com warning no log.
+    """
+    # Chave de lookup a partir do DTB
+    dtb_chave = df_dtb.select(
+        pl.col("sigla_uf"),
+        pl.col("Nome_Município").map_elements(_norm_str, return_dtype=pl.Utf8).alias(
+            "_chave_nome"
+        ),
+        pl.col("Código Município Completo").alias("id_municipio"),
+    ).unique()
+
+    # Tabela de-para como DataFrame auxiliar
+    depara = pl.DataFrame(
+        [
+            (uf, _norm_str(nome_sujo), _norm_str(nome_oficial))
+            for (uf, nome_sujo), nome_oficial in DEPARA_MUNICIPIO_SUJO.items()
+        ],
+        schema=["ESTADO", "_chave_nome_bruta", "_chave_nome_corrigida"],
+        orient="row",
+    )
+
+    df = (
+        df_projetos
+        .with_columns(
+            pl.col("CIDADES")
+            .map_elements(_norm_str, return_dtype=pl.Utf8)
+            .alias("_chave_nome_bruta")
+        )
+        .join(
+            depara, on=["ESTADO", "_chave_nome_bruta"], how="left"
+        )
+        .with_columns(
+            pl.coalesce(["_chave_nome_corrigida", "_chave_nome_bruta"]).alias(
+                "_chave_nome"
+            )
+        )
+        .join(dtb_chave, left_on=["ESTADO", "_chave_nome"], right_on=["sigla_uf", "_chave_nome"], how="left")
+    )
+
+    orfaos = df.filter(pl.col("id_municipio").is_null())
+    if orfaos.height > 0:
+        logging.warning(
+            f"  ⚠ {orfaos.height} linha(s) sem id_municipio — receberão -1. "
+            f"Adicione ao DEPARA_MUNICIPIO_SUJO:"
+        )
+        for row in orfaos.select("ESTADO", "CIDADES").unique().iter_rows():
+            logging.warning(f"    {row}")
+
+    df = df.with_columns(pl.col("id_municipio").fill_null("-1"))
+
+    return df.drop("_chave_nome", "_chave_nome_bruta", "_chave_nome_corrigida")
+
+
 def salvar(df, nome):
     """Salva DataFrame como Parquet em data/processed/."""
     PROCESSED_DIR.mkdir(parents=True, exist_ok=True)
@@ -125,7 +203,17 @@ def main():
         df = df.cast(pl.Utf8).with_columns(pl.lit(int(aba)).alias("ano"))
         dfs.append(df)
 
-    salvar(pl.concat(dfs, how="diagonal"), "projetos_ia")
+    df_projetos = pl.concat(dfs, how="diagonal")
+
+    # Filtrar linhas com ESTADO inválido (lixo de cabeçalho de abas)
+    df_projetos = df_projetos.filter(
+        pl.col("ESTADO").is_in(list(UF_VALIDAS_PROJETOS))
+    )
+
+    # Enriquecer com id_municipio via DTB
+    df_projetos = enriquecer_com_id_municipio(df_projetos, df_dtb)
+
+    salvar(df_projetos, "projetos_ia")
 
     # 4. IDEB — Índice de Desenvolvimento da Educação Básica
     #    Cabeçalho real com nomes de coluna (SG_UF, CO_MUNICIPIO, etc.) na linha 7

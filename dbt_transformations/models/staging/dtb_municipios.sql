@@ -16,3 +16,14 @@ dtb AS (
 )
 
 SELECT * FROM dtb
+
+UNION ALL
+
+SELECT
+    -1 AS id_municipio,
+    'NÃO INFORMADO' AS nome_municipio,
+    -1 AS id_uf,
+    'ND' AS sigla_uf,
+    'NÃO INFORMADO' AS nome_uf,
+    -1 AS id_regiao_geografica_imediata,
+    'NÃO INFORMADO' AS nome_regiao_geografica_imediata

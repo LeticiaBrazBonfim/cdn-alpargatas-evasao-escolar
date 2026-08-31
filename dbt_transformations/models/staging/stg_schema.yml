@@ -59,6 +59,14 @@ models:
   - name: projetos_ia
     description: "Projetos de IA educacional Alpargatas — staging 1:1. Filtra linhas com soma de projetos = 0."
     columns:
+      - name: id_municipio
+        description: "Código numérico oficial do município (IBGE 7 dígitos). Enriquecido via DTB no pré-processamento."
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dtb_municipios')
+                field: id_municipio
       - name: ano_competencia
         description: "Ano de execução do projeto."
         tests:

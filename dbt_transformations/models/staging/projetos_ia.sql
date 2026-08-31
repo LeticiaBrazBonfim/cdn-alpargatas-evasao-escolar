@@ -4,6 +4,7 @@ WITH source AS (
 
 clean AS (
     SELECT
+        CAST(id_municipio AS INTEGER) AS id_municipio,
         CAST(ano AS INTEGER) AS ano_competencia,
         UPPER(TRIM("ESTADO")) AS sigla_uf,
         UPPER(TRIM("CIDADES")) AS nome_municipio,
