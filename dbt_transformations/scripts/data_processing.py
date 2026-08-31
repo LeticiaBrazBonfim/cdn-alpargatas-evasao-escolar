@@ -147,15 +147,11 @@ def enriquecer_com_id_municipio(
     )
 
     orfaos = df.filter(pl.col("id_municipio").is_null())
-    if orfaos.height > 0:
-        logging.warning(
-            f"  ⚠ {orfaos.height} linha(s) sem id_municipio — receberão -1. "
-            f"Adicione ao DEPARA_MUNICIPIO_SUJO:"
-        )
-        for row in orfaos.select("ESTADO", "CIDADES").unique().iter_rows():
-            logging.warning(f"    {row}")
-
-    df = df.with_columns(pl.col("id_municipio").fill_null("-1"))
+    assert orfaos.height == 0, (
+        f"ERRO DE INTEGRIDADE: {orfaos.height} municipio(s) sem match exato. "
+        f"Trate as anomalias adicionando-as no DEPARA_MUNICIPIO_SUJO:\n"
+        f"{orfaos.select('ESTADO', 'CIDADES').unique().to_dicts()}"
+    )
 
     return df.drop("_chave_nome", "_chave_nome_bruta", "_chave_nome_corrigida")
 
